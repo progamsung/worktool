@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>AI 문서 자동화 실습 워크스페이스 | 강의·현장 실습용 웹앱</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- html2pdf.js for Direct Client-Side PDF Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+            serif: ['"Noto Serif KR"', 'Georgia', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              200: '#99f6e4',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+              900: '#134e4a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      overflow-x: hidden;
+    }
+
+    /* A4 Document Paper Styling */
+    .a4-paper {
+      background: #ffffff;
+      box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+      border: 1px solid #e2e8f0;
+      min-height: 680px;
+      transition: all 0.25s ease;
+    }
+
+    /* Highlight animation when live text updates */
+    @keyframes pulseHighlight {
+      0% { background-color: rgba(20, 184, 166, 0.22); }
+      100% { background-color: transparent; }
+    }
+    .live-updated {
+      animation: pulseHighlight 1.2s ease-out;
+      border-radius: 4px;
+      padding: 0 2px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between py-3 gap-3">
+        
+        <!-- Brand & Workshop Badge -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div onclick="handleSecretLogoClick()" title="강사 전용 메뉴 (연속 3번 클릭 또는 Alt+G)" class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-sm select-none cursor-pointer">
+              <i class="ph-bold ph-files text-xl"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900">AI 문서 자동화 실습 스튜디오</h1>
+                <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700 border border-brand-200">
+                  실습형 워크스페이스
+                </span>
+              </div>
+              <p class="text-xs text-slate-500">구직자 · 예비창업자 · 공공/일반행정 실무 문서 작성 훈련</p>
+            </div>
+          </div>
+
+          <!-- Mobile Quick Preview Jump Button -->
+          <button onclick="scrollToPreview()" class="md:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm">
+            <i class="ph-bold ph-eye"></i> 결과보기
+          </button>
+        </div>
+
+        <!-- Right Controls: Target Filter & Student Utility Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Target Audience Filter -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+            <span class="px-2 py-1 text-slate-500 font-medium hidden sm:inline"><i class="ph ph-users-three mr-1"></i>과정 필터:</span>
+            <button onclick="setPersonaFilter('all')" id="persona-all" class="persona-btn px-2.5 py-1 rounded-lg font-semibold bg-white text-brand-700 shadow-sm transition">전체</button>
+            <button onclick="setPersonaFilter('public')" id="persona-public" class="persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">공공·행정</button>
+            <button onclick="setPersonaFilter('startup')" id="persona-startup" class="persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">예비창업·소상공인</button>
+            <button onclick="setPersonaFilter('job')" id="persona-job" class="persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">구직·취업</button>
+          </div>
+
+          <!-- Student Utility Buttons -->
+          <button onclick="toggleModal('example-compare-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition shadow-sm">
+            <i class="ph-bold ph-arrows-left-right text-brand-600"></i>
+            <span>우수 결과물 예시 비교</span>
+          </button>
+          <button onclick="resetCurrentStageAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+            <i class="ph-bold ph-arrow-counter-clockwise"></i>
+            <span>처음부터 다시 연습</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3-STAGE CURRICULUM TABS -->
+      <div class="grid grid-cols-3 gap-1.5 sm:gap-3 pt-1 pb-3">
+        <button onclick="switchStage(1)" id="stage-tab-1" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 border-brand-600 bg-brand-50/70 text-left transition-all">
+          <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+            <div>
+              <div class="text-xs sm:text-sm font-bold text-brand-900">기본 서식 & 내 파일 반영</div>
+              <div class="text-[11px] text-brand-700 hidden md:block">업무 서식 선택 · 빈칸 채우기 · 내 서식 첨부</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-800 mt-1 sm:mt-0">기초 실습</span>
+        </button>
+
+        <button onclick="switchStage(2)" id="stage-tab-2" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all">
+          <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">2</span>
+            <div>
+              <div class="text-xs sm:text-sm font-bold text-slate-800">현장 메모·사진 → 초안 변환</div>
+              <div class="text-[11px] text-slate-500 hidden md:block">메모·자료·사진으로 회의록/보고서/발표자료 생성</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1 sm:mt-0">핵심 실습</span>
+        </button>
+
+        <button onclick="switchStage(3)" id="stage-tab-3" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all">
+          <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">3</span>
+            <div>
+              <div class="text-xs sm:text-sm font-bold text-slate-800">나만의 서식 저장 & 자동 완성</div>
+              <div class="text-[11px] text-slate-500 hidden md:block">자주 쓰는 서식 등록 후 핵심만 입력해 초안 생성</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1 sm:mt-0">실무 자동화</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- STEP-BY-STEP PEDAGOGICAL GUIDE BANNER -->
+  <section class="bg-slate-900 text-white border-b border-slate-800 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div class="flex items-start sm:items-center gap-3">
+          <span class="px-2.5 py-1 rounded-lg bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-bold shrink-0">
+            <i class="ph-bold ph-compass mr-1"></i>단계별 실습 가이드
+          </span>
+          <p id="stage-guide-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            <strong>[1단계]</strong> ① 아래에서 실습할 <strong>업무 서식</strong>을 고르거나 <strong>기존 서식 파일</strong>을 첨부하세요 → ② 좌측 입력창에 내용을 채우면 <strong>우측 문서에 실시간 반영</strong>됩니다 → ③ 생성된 <strong>프롬프트</strong>를 복사하거나 문체를 바꿔보세요.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="fillSampleDataForCurrentStage()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-400 text-slate-950 hover:bg-amber-300 transition shadow-sm">
+            <i class="ph-bold ph-magic-wand"></i>
+            <span>1초 예시 데이터 자동 입력</span>
+          </button>
+          <button onclick="toggleModal('example-compare-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 transition">
+            <i class="ph-bold ph-arrows-left-right"></i>
+            <span>우수 결과물 예시 보기</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE: SPLIT SCREEN -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: STAGE CONTROLS, TEMPLATE PICKER, INPUTS, FILE UPLOAD & PROMPT -->
+      <div class="lg:col-span-6 space-y-6 no-print">
+
+        <!-- ==================== STAGE 1 PANEL ==================== -->
+        <div id="stage-panel-1" class="space-y-5">
+          
+          <!-- 1-A. Template Selection Gallery -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="ph-fill ph-folders text-brand-600 text-lg"></i>
+                  <span>STEP 1-1. 업무 서식 선택 또는 내 서식 파일 불러오기</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">상단 과정 필터(공공·창업·구직)를 누르면 맞춤 서식이 나타나며, 내 파일을 직접 첨부할 수도 있습니다.</p>
+              </div>
+              <span id="template-count-badge" class="text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-200 shrink-0">13종 지원</span>
+            </div>
+
+            <!-- Template Cards Grid -->
+            <div id="stage1-template-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Custom File / Existing Form Importer Box -->
+            <div id="custom-import-box" class="mt-4 pt-4 border-t border-slate-200 hidden">
+              <div class="bg-brand-50/60 border border-brand-200 rounded-xl p-4 space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 class="text-xs sm:text-sm font-bold text-brand-900 flex items-center gap-1.5">
+                      <i class="ph-bold ph-upload-simple text-brand-600"></i>
+                      기존 보유 서식 파일 첨부 / 서식 텍스트 반영하기
+                    </h3>
+                    <p class="text-xs text-brand-800 mt-0.5">
+                      가지고 계신 양식 파일(<code class="bg-white px-1 rounded">.txt, .md, .html, .csv, .docx, .hwp, 이미지</code> 등)을 첨부하거나 아래에 서식 양식을 붙여넣으면, <strong>[항목]</strong> 또는 <strong>: (콜론)</strong> 구분자를 자동으로 인식해 빈칸 입력창으로 만들어 줍니다.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- File Upload Dropzone for Stage 1 -->
+                <div class="flex flex-wrap items-center gap-2">
+                  <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition">
+                    <i class="ph-bold ph-paperclip"></i>
+                    <span>내 기기에서 서식 파일 첨부</span>
+                    <input type="file" id="stage1-file-input" class="hidden" accept=".txt,.md,.csv,.json,.html,.doc,.docx,.hwp,.pdf,image/*" onchange="handleStage1FileUpload(event)" />
+                  </label>
+                  <button onclick="loadSampleCustomForm()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium transition">
+                    <i class="ph-bold ph-file-dashed"></i>
+                    <span>샘플 기관 양식 불러오기</span>
+                  </button>
+                  <span id="stage1-file-status" class="text-xs text-brand-800 font-medium"></span>
+                </div>
+
+                <!-- Raw Custom Template Editor -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    서식 원문 구조 (대괄호 <code class="text-brand-700 font-bold">[항목명]</code>을 넣으면 자동으로 좌측 입력칸이 생성됩니다)
+                  </label>
+                  <textarea id="custom-form-raw" rows="5" class="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="예시:&#10;■ 문서제목: [문서 제목]&#10;■ 작성일자: [작성 일자]&#10;■ 추진배경: [추진 배경 및 목적]&#10;■ 세부내용: [세부 실행 계획]&#10;■ 기대효과: [기대 효과]" oninput="parseCustomFormStructure()"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1-B. Dynamic Guided Fill-in Fields -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="ph-fill ph-pencil-line text-brand-600 text-lg"></i>
+                  <span id="stage1-form-title">STEP 1-2. 서식 빈칸 내용 입력</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">핵심 단어만 짧게 적어도 우측 문서에 서식화되어 즉시 반영됩니다.</p>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="fillStage1Sample()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 transition flex items-center gap-1">
+                  <i class="ph-bold ph-sparkle"></i> 입력 예시 채우기
+                </button>
+                <button onclick="resetStage1Fields()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition flex items-center gap-1">
+                  <i class="ph ph-arrow-counter-clockwise"></i> 비우기
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic Fields Container -->
+            <div id="stage1-fields-container" class="space-y-3.5">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== STAGE 2 PANEL ==================== -->
+        <div id="stage-panel-2" class="space-y-5 hidden">
+          
+          <!-- 2-A. Target Output Format & Scenario Picker -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="ph-fill ph-note-pencil text-brand-600 text-lg"></i>
+                  <span>STEP 2-1. 변환할 목표 문서 형식 선택</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">거친 현장 메모와 사진·첨부 자료를 어떤 문서로 바꿀지 선택하세요.</p>
+              </div>
+            </div>
+
+            <!-- 3 Output Target Types -->
+            <div class="grid grid-cols-3 gap-2.5">
+              <button onclick="setStage2OutputType('minutes')" id="s2-type-minutes" class="s2-type-btn p-3 rounded-xl border-2 border-brand-600 bg-brand-50/70 text-left transition">
+                <div class="flex items-center justify-between mb-1">
+                  <i class="ph-fill ph-users-four text-brand-700 text-lg"></i>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-200 text-brand-900">표준 양식</span>
+                </div>
+                <div class="text-xs sm:text-sm font-bold text-slate-900">회의록 초안</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">안건·결정사항·향후일정 정리</div>
+              </button>
+
+              <button onclick="setStage2OutputType('report')" id="s2-type-report" class="s2-type-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition">
+                <div class="flex items-center justify-between mb-1">
+                  <i class="ph-fill ph-file-text text-slate-600 text-lg"></i>
+                  <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">보고용</span>
+                </div>
+                <div class="text-xs sm:text-sm font-bold text-slate-900">결과·동향 보고서</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">개요·핵심성과·시사점 구조화</div>
+              </button>
+
+              <button onclick="setStage2OutputType('slides')" id="s2-type-slides" class="s2-type-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition">
+                <div class="flex items-center justify-between mb-1">
+                  <i class="ph-fill ph-presentation-chart text-slate-600 text-lg"></i>
+                  <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">PPT 구성</span>
+                </div>
+                <div class="text-xs sm:text-sm font-bold text-slate-900">발표자료 초안</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">슬라이드별 제목·핵심메시지</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2-B. Raw Field Memo + Photo / File Upload -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="ph-fill ph-camera-plus text-brand-600 text-lg"></i>
+                  <span>STEP 2-2. 현장 메모 입력 및 자료·사진 첨부</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">두서없는 메모나 화이트보드 사진, 참고 텍스트 파일을 올리면 내용을 합쳐 초안을 만듭니다.</p>
+              </div>
+              <!-- Quick Scenario Presets -->
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button onclick="loadStage2Sample('public')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 transition">
+                  예시1: 공공 간담회
+                </button>
+                <button onclick="loadStage2Sample('startup')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition">
+                  예시2: 창업 고객인터뷰
+                </button>
+                <button onclick="loadStage2Sample('job')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition">
+                  예시3: 취업 박람회 메모
+                </button>
+              </div>
+            </div>
+
+            <!-- Context Title & Meta -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">안건 / 프로젝트명</label>
+                <input type="text" id="s2-title" oninput="renderWorkspace()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="예: 2026 상반기 소상공인 디지털 전환 지원 간담회" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">일시 / 장소 / 참석자 (선택)</label>
+                <input type="text" id="s2-meta" oninput="renderWorkspace()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="예: 5.14(목) 14:00 / 대회의실 / 담당자 외 5명" />
+              </div>
+            </div>
+
+            <!-- Raw Field Notes Textarea -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs font-semibold text-slate-700">현장 속기 메모 (줄글·기호 상관없이 자유 입력)</label>
+                <span class="text-[11px] text-slate-400">줄바꿈 단위로 핵심 안건과 수치를 자동 분류합니다</span>
+              </div>
+              <textarea id="s2-raw-notes" rows="6" oninput="renderWorkspace()" class="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm leading-relaxed focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="- 오늘 회의에서 나온 이야기 편하게 적으세요&#10;- 예: 예산은 1,500만원으로 확정됨&#10;- 문제점: 스마트폰 화면이 작아서 글씨가 잘 안 보인다는 의견 많음&#10;- 다음주 수요일까지 김대리가 수정 시안 공유하기로 함"></textarea>
+            </div>
+
+            <!-- File / Photo Attachment Area -->
+            <div class="bg-slate-50 rounded-xl p-3.5 border border-dashed border-slate-300 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <i class="ph-duotone ph-image-square text-brand-600 text-xl"></i>
+                  <div>
+                    <div class="text-xs font-bold text-slate-800">현장 사진 · 화이트보드 · 참고 자료 첨부</div>
+                    <div class="text-[11px] text-slate-500">스마트폰 카메라 촬영 사진, 이미지, 텍스트/문서 파일을 올릴 수 있습니다.</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition">
+                    <i class="ph-bold ph-upload-simple"></i>
+                    <span>사진/자료 올리기</span>
+                    <input type="file" id="s2-file-input" class="hidden" multiple accept="image/*,.txt,.md,.csv,.json,.pdf,.doc,.docx,.hwp" onchange="handleStage2FileUpload(event)" />
+                  </label>
+                  <button onclick="loadSimulatedPhotoAttachment()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-medium transition">
+                    <i class="ph ph-chalkboard"></i> 샘플 화이트보드 사진 넣기
+                  </button>
+                </div>
+              </div>
+
+              <!-- Attached Files & Photo Preview Strip -->
+              <div id="s2-attachments-preview" class="hidden pt-2 border-t border-slate-200 space-y-2">
+                <!-- Populated by JS -->
+              </div>
+
+              <!-- Extracted / Annotated Content from Photo or Document -->
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">
+                  첨부 사진/문서에서 추출·반영할 핵심 내용 (파일 첨부 시 자동 입력되며 직접 수정 가능)
+                </label>
+                <textarea id="s2-attachment-summary" rows="2" oninput="renderWorkspace()" class="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none" placeholder="사진 속 화이트보드 문구, 영수증 내역, 첨부 파일 요약 등이 이곳에 반영되어 우측 초안에 합쳐집니다."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== STAGE 3 PANEL ==================== -->
+        <div id="stage-panel-3" class="space-y-5 hidden">
+          
+          <!-- 3-A. Saved Custom Templates Vault -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="ph-fill ph-bookmark-simple text-brand-600 text-lg"></i>
+                  <span>STEP 3-1. 내가 자주 쓰는 서식 보관함</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">자주 쓰는 서식을 저장해 두고, 다음부터는 핵심 내용만 적어 1초 만에 초안을 만드세요.</p>
+              </div>
+              <button onclick="toggleNewTemplateCreator()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition">
+                <i class="ph-bold ph-plus-circle"></i>
+                <span>새 나만의 서식 등록</span>
+              </button>
+            </div>
+
+            <!-- Saved Templates List -->
+            <div id="s3-vault-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Populated by JS from localStorage -->
+            </div>
+
+            <!-- Collapsible New Template Registration Form -->
+            <div id="s3-creator-box" class="hidden pt-4 border-t border-slate-200 space-y-3 bg-slate-50 p-4 rounded-xl">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <i class="ph-bold ph-folder-plus text-brand-600"></i>
+                  새로운 나만의 서식 저장하기
+                </h3>
+                <label class="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                  <i class="ph ph-paperclip"></i> 파일에서 서식 불러오기
+                  <input type="file" class="hidden" accept=".txt,.md,.html,.csv" onchange="handleStage3TemplateFile(event)" />
+                </label>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div class="sm:col-span-2">
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">서식 이름</label>
+                  <input type="text" id="s3-new-name" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs sm:text-sm" placeholder="예: 주간 고객 클레임 처리 요약서" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">분류 태그</label>
+                  <select id="s3-new-category" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs sm:text-sm">
+                    <option value="공공·행정">공공·행정</option>
+                    <option value="예비창업·소상공인">예비창업·소상공인</option>
+                    <option value="구직·취업">구직·취업</option>
+                    <option value="공통업무">공통업무</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                  서식 뼈대 구성 (<code class="text-brand-700 font-bold">{{핵심내용}}</code>, <code class="text-brand-700 font-bold">{{배경}}</code>, <code class="text-brand-700 font-bold">{{향후계획}}</code> 위치에 자동 생성된 문장이 들어갑니다)
+                </label>
+                <textarea id="s3-new-structure" rows="5" class="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-mono" placeholder="[{{제목}}]&#10;1. 배경 및 목적: {{배경}}&#10;2. 주요 내용 및 현황: {{핵심내용}}&#10;3. 향후 조치 계획: {{향후계획}}&#10;4. 담당 및 일정: {{일정}}"></textarea>
+              </div>
+
+              <div class="flex justify-end gap-2">
+                <button onclick="toggleNewTemplateCreator(false)" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-slate-300 text-slate-600">취소</button>
+                <button onclick="saveNewStage3Template()" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 shadow-sm">보관함에 저장</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3-B. One-Shot Content Input for Instant Draft Generation -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3.5">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="ph-fill ph-lightning text-brand-600 text-lg"></i>
+                  <span>STEP 3-2. 핵심 내용만 한 줄씩 입력 (자동 서식 완성)</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">선택한 내 서식에 맞춰 문장을 다듬고 빈자리를 채워 완성본을 생성합니다.</p>
+              </div>
+              <button onclick="fillStage3Sample()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 transition">
+                <i class="ph-bold ph-sparkle"></i> 예시 내용 넣기
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">문서 제목 / 건명</label>
+                <input type="text" id="s3-input-title" oninput="renderWorkspace()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="예: 신규 친환경 패키징 도입 검토 건" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">일시 / 대상 / 담당자</label>
+                <input type="text" id="s3-input-date" oninput="renderWorkspace()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="예: 2026. 11. / 마케팅팀 홍길동" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">
+                전달할 핵심 요지 (메모처럼 편하게 적으세요)
+              </label>
+              <textarea id="s3-input-memo" rows="5" oninput="renderWorkspace()" class="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm leading-relaxed focus:ring-2 focus:ring-brand-500 outline-none" placeholder="예: 기존 플라스틱 용기 단가가 12% 인상됨. 생분해 종이 용기로 전환 시 초기 단가는 비슷하나 친환경 인증 마크 획득 가능. 12월 시범 도입 후 고객 반응 설문조사 진행 예정."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHARED PEDAGOGICAL MODULE A: COPYABLE AI PROMPT GENERATOR -->
+        <div class="bg-slate-900 text-slate-100 rounded-2xl p-4 sm:p-5 shadow-md border border-slate-800 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-brand-500/20 border border-brand-400/30 flex items-center justify-center text-brand-300">
+                <i class="ph-bold ph-terminal-window"></i>
+              </span>
+              <div>
+                <h3 class="text-xs sm:text-sm font-bold text-white">바로 복사해 쓰는 맞춤형 AI 프롬프트</h3>
+                <p class="text-[11px] text-slate-400">위 입력 내용과 서식이 반영된 프롬프트입니다. 복사해서 ChatGPT·Gemini·Claude에 바로 붙여넣으세요.</p>
+              </div>
+            </div>
+            <button onclick="copyPromptToClipboard()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 text-xs font-bold shadow-sm transition">
+              <i class="ph-bold ph-copy"></i>
+              <span>프롬프트 복사하기</span>
+            </button>
+          </div>
+
+          <pre id="generated-prompt-box" class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto select-all"></pre>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: REAL-TIME FORMATTED DOCUMENT PREVIEW, REFINE & CHECKLIST -->
+      <div id="preview-column" class="lg:col-span-6 lg:sticky lg:top-28 space-y-5">
+
+        <!-- Refine & Tone Switcher Toolbar -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 shadow-sm no-print space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-700">
+                <i class="ph-bold ph-sliders"></i>
+              </span>
+              <span class="text-xs sm:text-sm font-bold text-slate-800">실시간 문체 변환 · 다운로드</span>
+            </div>
+
+            <!-- Action Buttons: Copy Document / Direct PDF Download / Reset -->
+            <div class="flex items-center gap-1.5">
+              <button onclick="copyRenderedDocument()" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-sm transition">
+                <i class="ph-bold ph-copy-simple"></i>
+                <span>완성 문서 복사</span>
+              </button>
+              <button id="pdf-download-btn" onclick="downloadDocumentAsPDF()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm transition disabled:opacity-60 disabled:cursor-wait">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span id="pdf-download-btn-text">PDF 다운로드</span>
+              </button>
+              <button onclick="resetCurrentStageAll()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition" title="현재 단계 처음부터 다시 연습">
+                <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                <span>다시 연습</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tone & Detail Level Controls -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-slate-500 font-medium mr-1">문체 선택:</span>
+              <button onclick="setDocTone('formal')" id="tone-formal" class="tone-btn px-2.5 py-1 rounded-lg font-semibold bg-brand-600 text-white transition">개조식 표준(~함/음)</button>
+              <button onclick="setDocTone('polite')" id="tone-polite" class="tone-btn px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">정중한 설명형(~습니다)</button>
+              <button onclick="setDocTone('persuasive')" id="tone-persuasive" class="tone-btn px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">설득·강조형(제안/어필)</button>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-500 font-medium">분량:</span>
+              <button onclick="setDocLength('standard')" id="len-standard" class="len-btn px-2 py-1 rounded-lg font-semibold bg-slate-800 text-white transition">표준</button>
+              <button onclick="setDocLength('expanded')" id="len-expanded" class="len-btn px-2 py-1 rounded-lg font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">+ 상세 보강</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE A4 DOCUMENT PREVIEW CANVAS -->
+        <div id="printable-area" class="a4-paper rounded-2xl p-6 sm:p-8 relative">
+          <!-- Top Watermark / Status Ribbon -->
+          <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-200 no-print">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">실시간 서식화 미리보기 (Live Document)</span>
+            </div>
+            <span id="doc-badge-label" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700">
+              1단계 · 기본 업무 서식
+            </span>
+          </div>
+
+          <!-- Dynamic Rendered Document Content -->
+          <div id="document-render-target" class="space-y-5 text-slate-800 leading-relaxed">
+            <!-- Populated dynamically in real time -->
+          </div>
+        </div>
+
+        <!-- SHARED PEDAGOGICAL MODULE B: SELF-CHECKLIST & RETRY FLOW -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm no-print space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <i class="ph-fill ph-check-square-offset text-brand-600 text-lg"></i>
+                <span>결과물 완성도 셀프 체크리스트</span>
+              </h3>
+              <p class="text-[11px] text-slate-500">작성된 초안이 실무 기준에 맞는지 점검하고 부족한 항목을 좌측에서 보완해 보세요.</p>
+            </div>
+            <span id="checklist-score" class="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">0 / 4 완료</span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div id="checklist-progress" class="h-full bg-brand-600 transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <div id="checklist-items" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <!-- Populated dynamically per stage -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL 1: INSTRUCTOR SECRET MODAL (Includes 1-Click index.html Download for GitHub) -->
+  <div id="sites-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2">
+          <i class="ph-fill ph-chalkboard-teacher text-brand-600 text-2xl"></i>
+          <h3 class="text-base sm:text-lg font-bold text-slate-900">강사 전용: GitHub 배포 파일 저장 & 강의 운영 안내</h3>
+        </div>
+        <button onclick="toggleModal('sites-modal', false)" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+        <!-- 1-Click Download Box for GitHub Pages -->
+        <div class="bg-slate-900 text-white rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="font-bold text-brand-300 text-sm flex items-center gap-1.5">
+              <i class="ph-bold ph-github-logo text-lg"></i>
+              깃허브(GitHub) 업로드용 파일 1초 다운로드
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">
+              오른쪽 버튼을 누르면 현재 웹앱 전체가 <code class="text-amber-300 font-mono">index.html</code> 파일로 내 컴퓨터에 즉시 저장됩니다.
+            </p>
+          </div>
+          <button onclick="downloadSelfHtmlFile()" class="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs shadow-sm transition">
+            <i class="ph-bold ph-download-simple text-base"></i>
+            <span>index.html 다운로드</span>
+          </button>
+        </div>
+
+        <div class="bg-brand-50 border border-brand-200 rounded-xl p-4 text-brand-900">
+          <div class="font-bold mb-1">💡 강사님을 위한 30초 현장 운영 팁</div>
+          <p class="text-xs leading-relaxed">
+            수강생이 스마트폰이나 노트북에서 타자 치기가 느린 경우, 상단 배너의 <strong>[1초 예시 데이터 자동 입력]</strong> 버튼을 누르게 하세요. 즉시 완성도 높은 예시가 들어가며, 거기서 단어 1~2개만 본인의 업무로 바꾸게 하면 전원이 낙오 없이 실습을 마칠 수 있습니다.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="font-bold text-slate-900">1. GitHub Pages 무료 배포 순서 요약</h4>
+          <ol class="list-decimal list-inside space-y-1.5 text-xs">
+            <li>위 <strong>[index.html 다운로드]</strong> 버튼을 눌러 내 컴퓨터에 <code class="bg-slate-100 px-1 rounded">index.html</code> 파일을 저장합니다.</li>
+            <li>GitHub.com 로그인 → <strong>New repository</strong> 생성 (Public 선택) → <strong>uploading an existing file</strong> 클릭 후 <code class="bg-slate-100 px-1 rounded">index.html</code> 업로드 및 <strong>Commit changes</strong> 클릭!</li>
+            <li>상단 <strong>Settings → Pages</strong> 메뉴에서 Branch를 <strong>main</strong>으로 바꾸고 <strong>Save</strong>를 누르면 1분 뒤 배포 주소가 생성됩니다.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-3 border-t border-slate-200">
+        <button onclick="toggleModal('sites-modal', false)" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: BEFORE & AFTER EXAMPLE RESULT COMPARISON -->
+  <div id="example-compare-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2">
+          <i class="ph-fill ph-arrows-left-right text-brand-600 text-2xl"></i>
+          <h3 class="text-base sm:text-lg font-bold text-slate-900">입력 전(거친 메모) vs 서식화 후(완성 초안) 비교 예시</h3>
+        </div>
+        <button onclick="toggleModal('example-compare-modal', false)" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 space-y-2">
+          <span class="px-2 py-0.5 rounded bg-slate-300 text-slate-800 font-bold">Before: 사용자가 대충 적은 메모</span>
+          <p class="font-mono text-slate-700 leading-relaxed whitespace-pre-line">- 오늘 전통시장 상인회 간담회 다녀옴 (15명 참석)
+- 모바일 온누리상품권 결제 QR코드 가맹 신청이 너무 어렵다고 하심
+- 현장 방문 도우미 2명 다음 달부터 주 2회 파견하기로 결정
+- 안내 리플릿 글씨 크게 해서 500부 인쇄 필요 (예산 40만원 내외)</p>
+        </div>
+        <div class="p-4 rounded-xl bg-brand-50/70 border border-brand-200 space-y-2">
+          <span class="px-2 py-0.5 rounded bg-brand-600 text-white font-bold">After: AI 서식화가 완료된 공적 보고서</span>
+          <div class="text-slate-800 space-y-1.5 leading-relaxed">
+            <p class="font-bold text-slate-900">[전통시장 디지털 결제 활성화 상인회 간담회 결과보고]</p>
+            <p><strong>1. 추진 개요:</strong> 전통시장 상인회 15명 대상 모바일 결제 도입 애로사항 청취</p>
+            <p><strong>2. 주요 건의사항:</strong> 고령 상인 대상 모바일 QR 가맹 신청 절차의 복잡성 해소 요청</p>
+            <p><strong>3. 결정 및 조치사항:</strong> ① 익월 말부터 현장 가입 지원 도우미 2명 파견(주 2회) ② 큰글씨 안내 리플릿 500부 제작·배부(소요예산 약 40만 원)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+        <button onclick="toggleModal('example-compare-modal', false)" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-box" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 flex items-center gap-2.5 text-xs sm:text-sm font-medium no-print">
+    <i class="ph-fill ph-check-circle text-brand-400 text-lg"></i>
+    <span id="toast-message">복사되었습니다.</span>
+  </div>
+
+  <!-- APPLICATION LOGIC & DATA -->
+  <script>
+    const state = {
+      currentStage: 1,
+      personaFilter: 'all',
+      docTone: 'formal',
+      docLength: 'standard',
+      selectedStage1TemplateId: 'work-report',
+      stage1Values: {},
+      customParsedFields: ['문서 제목', '작성 일자 및 부서', '추진 배경 및 목적', '주요 실행 내용', '기대 효과 및 향후 일정'],
+      stage2OutputType: 'minutes',
+      stage2Attachments: [],
+      stage3Templates: [],
+      selectedStage3TemplateId: 'v-weekly'
+    };
+
+    const STAGE1_TEMPLATES = [
+      // 공공·일반행정 (public)
+      {
+        id: 'work-report',
+        persona: 'public',
+        badge: '공공·일반행정',
+        title: '일일·주간 핵심 업무보고서',
+        desc: '추진 실적, 진행 현황, 현안 및 향후 계획을 깔끔한 표와 개조식으로 정리합니다.',
+        fields: [
+          { key: 'title', label: '보고서 제목', placeholder: '예: 11월 2주차 시민소통팀 주간 업무보고', sample: '11월 2주차 디지털역량강화 교육 운영 실적 및 계획 보고' },
+          { key: 'author', label: '작성 부서 / 성명', placeholder: '예: 교육운영팀 김민수 주무관', sample: '평생학습지원과 / 이지훈 담당관' },
+          { key: 'done', label: '주요 추진 실적 (완료 사항)', type: 'textarea', placeholder: '이번 주 완료한 핵심 업무와 수치를 입력하세요', sample: '• 찾아가는 AI 문서 실습 특강 3회 운영 완료 (수강생 총 84명, 만족도 96%)\n• 모바일 실습용 표준 서식 템플릿 6종 배포 완료' },
+          { key: 'plan', label: '차주 추진 계획', type: 'textarea', placeholder: '다음 주 예정된 주요 일정과 목표를 입력하세요', sample: '• 예비창업자 및 소상공인 대상 야간 실습반 개설 (11.18, 30명 규모)\n• 우수 실습 사례집 PDF 제작 및 홈페이지 게시' },
+          { key: 'issue', label: '주요 현안 및 협조 요청사항', type: 'textarea', placeholder: '애로사항이나 타 부서 협조가 필요한 사항', sample: '• 강의장 공공 와이파이 동시 접속자 증가에 따른 공유기 증설 협조 요청 (정보통신팀)' }
+        ]
+      },
+      {
+        id: 'proposal-draft',
+        persona: 'public',
+        badge: '공공·일반행정',
+        title: '사업 기안문 및 추진계획 요약서',
+        desc: '추진 배경, 사업 개요, 세부 내용, 소요 예산, 기대 효과를 공문서 표준 양식으로 구성합니다.',
+        fields: [
+          { key: 'title', label: '안건명 (기안 제목)', placeholder: '예: 2026년 민원 안내 챗봇 및 서식 자동화 도입 계획(안)', sample: '생성형 AI 활용 실무 문서 작성 역량강화 워크숍 추진 계획(안)' },
+          { key: 'purpose', label: '1. 추진 배경 및 목적', type: 'textarea', placeholder: '왜 이 사업을 추진하는지 핵심 이유를 적으세요', sample: '• 반복적인 보고서·회의록 작성 시간을 단축하여 핵심 대민 업무 집중도 향상\n• 노트북 및 스마트폰을 활용한 현장 중심 AI 활용 능력 배양' },
+          { key: 'overview', label: '2. 사업 개요 (일시·대상·장소)', placeholder: '예: 2026. 11. 20.(금) 14:00 / 전 직원 50명 / 대강당', sample: '• 일시/장소: 2026. 11. 25.(수) 14:00~17:00 / 본관 3층 스마트교육실\n• 참석대상: 신규 임용자 및 실무 담당자 40명' },
+          { key: 'detail', label: '3. 주요 내용 및 세부 계획', type: 'textarea', placeholder: '핵심 프로그램이나 실행 단계', sample: '• 1단계: 표준 업무 서식 빈칸 채우기 및 공문서 문체 변환 실습\n• 2단계: 현장 수기 메모 및 사진을 활용한 회의록·결과보고서 초안 자동 생성\n• 3단계: 부서별 자주 쓰는 서식 템플릿화 및 자동 완성 실습' },
+          { key: 'budget', label: '4. 소요 예산 및 기대 효과', type: 'textarea', placeholder: '예산 규모와 정량/정성적 기대효과', sample: '• 소요예산: 금 1,200,000원 (강사료 및 실습 교안 인쇄비)\n• 기대효과: 초안 작성 시간 평균 60% 단축 및 보고 문서 품질 표준화' }
+        ]
+      },
+      {
+        id: 'press-release',
+        persona: 'public',
+        badge: '공공·일반행정',
+        title: '기관·부서 행사 보도자료 및 홍보문',
+        desc: '언론 배포 및 홈페이지 공지용 보도자료(제목, 부제, 본문 요약, 행사 개요, 담당자 인용구) 서식입니다.',
+        fields: [
+          { key: 'headline', label: '보도자료 본제목 / 부제목', placeholder: '예: “AI로 보고서 작성 10분 만에 끝낸다” 시민 디지털 실습 특강 성료', sample: '“스마트폰 하나로 공문서부터 창업 기획서까지”… 현장형 AI 문서 자동화 실습 교육 큰 호응' },
+          { key: 'summary', label: '1. 핵심 요약 (리드문)', type: 'textarea', placeholder: '언제, 누가, 무엇을 했는지 첫 문단 요약', sample: '• 구직자·예비창업자·실무자 100여 명 대상 맞춤형 AI 문서 작성 실습 과정 운영\n• 노트북과 스마트폰을 연동한 실시간 서식 변환 훈련으로 교육 만족도 96% 기록' },
+          { key: 'body', label: '2. 주요 내용 및 특징', type: 'textarea', placeholder: '세부 프로그램 내용과 주요 성과', sample: '• 기존의 이론 위주 강의에서 벗어나 현장에서 즉시 쓸 수 있는 이력서, 사업계획서, 주간보고서 서식 실습 제공\n• 참가자가 직접 찍은 현장 사진과 메모를 회의록·발표자료로 즉시 변환하는 실습 진행' },
+          { key: 'quote', label: '3. 관계자 소감 (인용문)', placeholder: '담당 부서장 또는 기관장 코멘트', sample: '• 관계자 인터뷰: “누구나 디지털 도구로 문서 작성 부담을 덜고 본연의 창의적 업무에 집중할 수 있도록 실전형 교육을 지속 확대하겠다”' },
+          { key: 'contact', label: '4. 문의처 및 향후 일정', placeholder: '담당 부서 및 연락처', sample: '• 문의: 디지털교육지원팀 (02-123-4567) / 12월 심화 과정 추가 개설 예정' }
+        ]
+      },
+      {
+        id: 'civil-reply',
+        persona: 'public',
+        badge: '공공·일반행정',
+        title: '민원·질의 회신문 및 안내 공지문',
+        desc: '주민·이용자의 건의사항이나 문의에 대해 공감과 검토 결과, 조치 일정을 명확히 전달하는 회신 양식입니다.',
+        fields: [
+          { key: 'title', label: '회신 및 안내 건명', placeholder: '예: [회신] 평생학습관 야간 강좌 확대 건의에 대한 검토 결과 안내', sample: '[안내] 2026년 하반기 청년·소상공인 AI 실습 교육 추가 개설 요청에 대한 회신' },
+          { key: 'greeting', label: '1. 공감 인사 및 건의 요지 확인', type: 'textarea', placeholder: '민원인에 대한 감사 인사와 문의 내용 요약', sample: '• 평소 우리 기관 교육 프로그램에 깊은 관심을 가져주심에 진심으로 감사드립니다.\n• 귀하께서 건의하신 ‘직장인 및 소상공인을 위한 평일 야간·주말 실습반 개설’ 건에 대해 아래와 같이 검토 결과를 안내해 드립니다.' },
+          { key: 'result', label: '2. 검토 결과 및 조치 사항', type: 'textarea', placeholder: '수용 여부, 추진 내용, 관련 근거 등', sample: '• 수요 조사 결과 야간 과정 희망자가 다수 확인됨에 따라 12월 첫째 주부터 매주 화·목 야간반(19:00~21:00)을 신설 운영하기로 결정하였습니다.\n• 모바일 환경에서도 동일한 실습이 가능하도록 반응형 웹 교안을 전면 무료 배포합니다.' },
+          { key: 'schedule', label: '3. 향후 일정 및 신청 방법', type: 'textarea', placeholder: '언제부터 어떻게 이용할 수 있는지 안내', sample: '• 사전 신청 기간: 2026. 11. 20.(금) 09:00부터 홈페이지 온라인 선착순 접수\n• 교육 장소: 디지털배움터 제2실습실 (정원 30명)' },
+          { key: 'closing', label: '4. 담당 부서 및 추가 문의처', placeholder: '담당자 성명 및 직통 번호', sample: '• 추가 문의사항이 있으실 경우 평생교육팀(담당 홍길동, 044-000-0000)으로 연락 주시면 친절히 안내해 드리겠습니다.' }
+        ]
+      },
+
+      // 예비창업·소상공인 (startup)
+      {
+        id: 'startup-grant',
+        persona: 'startup',
+        badge: '예비창업·소상공인',
+        title: '정부지원사업 사업계획서 (PSST 표준)',
+        desc: '문제인식(Problem), 해결방안(Solution), 성장전략(Scale-up), 팀 역량(Team) 표준 구조입니다.',
+        fields: [
+          { key: 'itemName', label: '창업 아이템명 (한 줄 정의)', placeholder: '예: 소상공인 매장 사진 1장으로 홍보문구와 배너를 만드는 AI 서비스', sample: '지역 농특산물 못난이 농산물 직거래 정기구독 및 레시피 큐레이션 플랫폼' },
+          { key: 'problem', label: '1. 문제인식 (Problem - 고객의 불편함)', type: 'textarea', placeholder: '고객이 겪고 있는 구체적인 문제와 시장 상황', sample: '• 품질은 우수하나 외관 규격 미달로 폐기되는 지역 농산물이 연간 18% 발생\n• 1~2인 가구는 소량 구매와 간편 조리법 정보가 부족해 구매를 주저함' },
+          { key: 'solution', label: '2. 실현가능성 (Solution - 핵심 해결책)', type: 'textarea', placeholder: '우리 제품/서비스만의 차별화된 해결 방법', sample: '• 산지 직송 소포장(1.5kg) 정기구독 박스 구성으로 시중가 대비 35% 절감\n• 박스 내 QR코드로 식재료 맞춤형 10분 완성 레시피 카드 자동 제공' },
+          { key: 'scaleup', label: '3. 성장전략 (Scale-up - 수익모델 및 판로)', type: 'textarea', placeholder: '초기 고객 확보 방안 및 매출 계획', sample: '• 로컬 맘카페 및 지역 공공기관 임직원 복지몰 제휴를 통한 초기 구독자 500명 확보\n• 월 구독료(29,000원) 기반 안정적 반복 매출 및 B2B 식자재 납품 확장' },
+          { key: 'team', label: '4. 팀 구성 및 보유 역량 (Team)', placeholder: '대표자 및 팀원의 관련 경험과 강점', sample: '• 대표자: 식품유통 MD 경력 6년 / 팀원: 산지 영농조합 네트워크 12곳 협약 완료' }
+        ]
+      },
+      {
+        id: 'partner-email',
+        persona: 'startup',
+        badge: '예비창업·소상공인',
+        title: 'B2B 제휴 제안서 및 거래처 영업문',
+        desc: '신규 거래처 입점 제안, 기관 협업 요청, 단체 납품 제안 등 신뢰감을 주는 비즈니스 서식입니다.',
+        fields: [
+          { key: 'receiver', label: '수신처 (담당자명 / 기업·기관명)', placeholder: '예: OO유통 상품기획팀 김지영 팀장님 귀하', sample: '행복문화재단 지역상생팀 박서연 팀장님 귀하' },
+          { key: 'subject', label: '제안 제목 (핵심 혜택 중심)', placeholder: '예: [제휴제안] 연말 행사 답례품 로컬 수제청 세트 특별 공급 제안의 건', sample: '[협업제안] 2026 지역 축제 방문객 대상 친환경 리유저블 굿즈 제작 및 부스 운영 제안' },
+          { key: 'intro', label: '인사말 및 제안 배경', type: 'textarea', placeholder: '상대방에 대한 관심과 연락드린 이유', sample: '안녕하십니까, 친환경 로컬 브랜드 [그린스텝] 대표 한도윤입니다. 귀 재단이 추진하시는 탄소중립 지역 축제 취지에 깊이 공감하며, 방문객 만족도를 높일 수 있는 실용적인 협업 방안을 제안드립니다.' },
+          { key: 'offer', label: '핵심 제안 내용 및 파트너 혜택', type: 'textarea', placeholder: '구체적인 제공 조건과 상대방이 얻는 이점', sample: '• 축제 로고 각인 다회용 텀블러 1,000세트 제작 (단가 20% 특별 할인 적용)\n• 행사장 내 무료 세척 및 리필 이벤트 부스 당사 인력 무상 지원\n• 축제 종료 후 탄소 절감 수치 결과 리포트 제공' },
+          { key: 'cta', label: '회신 요청 및 연락처', placeholder: '미팅 제안 일정 및 연락처', sample: '첨부해 드린 단가표와 샘플 사진을 검토해 주시고, 차주 중 15분 내외로 샘플 미팅이 가능하신 일정을 알려주시면 감사하겠습니다. (010-1234-5678 / contact@greenstep.kr)' }
+        ]
+      },
+      {
+        id: 'store-promo',
+        persona: 'startup',
+        badge: '예비창업·소상공인',
+        title: '스마트스토어·상세페이지 & SNS 홍보 기획안',
+        desc: '상품의 핵심 셀링 포인트(USP), 고객 후킹 카피, 상세페이지 구성, 이벤트 안내문을 한 번에 작성합니다.',
+        fields: [
+          { key: 'productName', label: '상품/서비스명 및 타깃 고객', placeholder: '예: 바쁜 직장인을 위한 3분 완성 수제 한우 사골 떡국 밀키트', sample: '[당일착유] 저온압착 국산 통들기름 선물세트 (타깃: 3050 건강식 선호 주부 및 명절 선물 수요층)' },
+          { key: 'hookCopy', label: '1. 헤드라인 후킹 카피 (첫 문장)', placeholder: '고객의 시선을 사로잡는 한 줄 카피', sample: '“주문 즉시 방앗간에서 갓 짜낸 고소함, 단 한 방울의 첨가물도 없이 아침 식탁으로 배송합니다.”' },
+          { key: 'usp', label: '2. 핵심 차별화 포인트 3가지 (Why Us)', type: 'textarea', placeholder: '경쟁사 대비 우리 상품만의 강점과 수치', sample: '• 100% 지역 계약재배 햇들깨만 선별 사용 (원산지 인증서 동봉)\n• 발암물질 걱정 없는 45도 저온 압착 공법으로 영양소 파괴 최소화\n• 산패 방지 UV 차단 독일제 암갈색 유리병 및 선물용 고급 보자기 포장 기본 제공' },
+          { key: 'spec', label: '3. 상품 구성 및 가격·혜택 조건', type: 'textarea', placeholder: '용량, 가격, 출시 기념 이벤트 내용', sample: '• 본품 구성: 생들기름 250ml × 2병 + 볶음통깨 100g 증정\n• 런칭 특가: 정가 48,000원 → 알림받기 쿠폰 적용 시 36,900원 (무료배송)' },
+          { key: 'faq', label: '4. 배송 안내 및 고객 안심 문구', placeholder: '배송 일정 및 환불/교환 보장 안내', sample: '• 매주 월·수·금 오전 착유 후 당일 발송 / 수령 후 불만족 시 100% 무료 반품 보장' }
+        ]
+      },
+
+      // 구직·취업준비 (job)
+      {
+        id: 'job-resume',
+        persona: 'job',
+        badge: '구직·취업준비',
+        title: '핵심 역량 중심 표준 이력서 (Resume)',
+        desc: '지원 직무, 핵심 역량 요약(Summary), 주요 경력·프로젝트 성과, 보유 기술·자격증을 한눈에 정리하는 이력서 서식입니다.',
+        fields: [
+          { key: 'profile', label: '지원자 성명 / 지원 직무 및 연락처', placeholder: '예: 김지민 | 디지털 마케팅·콘텐츠 기획 지원 (010-0000-0000)', sample: '박서준 | 경영지원·데이터 기반 사업운영 직무 지원 (010-9876-5432 / sj.park@email.com)' },
+          { key: 'summary', label: '1. 핵심 역량 요약 (Professional Summary)', type: 'textarea', placeholder: '나를 가장 잘 나타내는 직무 강점 2~3줄 요약', sample: '• 생성형 AI 및 스프레드시트 자동화를 활용해 반복 행정 업무 시간을 60% 이상 단축한 실무형 인재\n• 3건의 공공·대학 프로젝트를 리드하며 예산 관리, 일정 조율, 결과보고서 작성을 완수한 경험 보유\n• 데이터 시각화와 명확한 문서 커뮤니케이션으로 팀 내 협업 효율을 극대화함' },
+          { key: 'experience', label: '2. 주요 경력 및 직무 관련 활동 (성과 수치 중심)', type: 'textarea', placeholder: '근무처/활동명, 기간, 담당 업무 및 핵심 성과를 입력하세요', sample: '• [OO진흥원] 청년 디지털 행정 인턴 (2026.03 ~ 2026.08)\n  - 주간 교육생 출결 및 만족도 취합 프로세스를 온라인 자동화하여 주당 4시간 소요 업무를 30분으로 단축\n  - 소상공인 지원사업 안내 매뉴얼 및 FAQ 카드뉴스 15종 기획·제작 (단순 전화 문의 35% 감소)\n• [한국대 경영학회] 산학협력 프로젝트 팀장 (2025.09 ~ 2025.12)\n  - 지역 전통시장 활성화 데이터 분석 및 마케팅 제안서 작성 (최우수상 수상)' },
+          { key: 'skills', label: '3. 보유 기술 · 활용 툴 · 자격증', type: 'textarea', placeholder: '업무에 바로 활용 가능한 OA, AI 툴, 어학, 자격증 등', sample: '• 문서/데이터 자동화: Excel(피벗·함수), Google Workspace, Notion, 생성형 AI 프롬프트 설계\n• 보유 자격증: 컴퓨터활용능력 1급, 데이터분석준전문가(ADsP), ERP정보관리사 인사 1급' },
+          { key: 'education', label: '4. 학력 및 직무 교육 이수 내역', placeholder: '학교/전공 또는 수료한 직무 부트캠프·교육 과정', sample: '• OO대학교 경영정보학과 졸업 (2026.02) / AI 실무 문서 자동화 및 데이터 리터러시 전문가 과정 수료 (40시간)' }
+        ]
+      },
+      {
+        id: 'job-coverletter',
+        persona: 'job',
+        badge: '구직·취업준비',
+        title: '직무 맞춤형 자기소개서 (4대 필수 문항)',
+        desc: '지원동기, 직무 강점 및 핵심 역량, 문제해결(협업) 경험, 입사 후 포부로 구성된 표준 자기소개서 서식입니다.',
+        fields: [
+          { key: 'companyRole', label: '지원 기업(기관)명 및 지원 직무 / 소제목', placeholder: '예: [한국디지털진흥원 - 사업운영직] 현장의 목소리를 데이터와 문서로 연결하는 실무자', sample: '[스마트워크솔루션(주) - 서비스기획·운영] AI 문서 자동화로 고객과 팀의 시간을 아끼는 기획자' },
+          { key: 'motivation', label: '1. 지원 동기 (왜 이 기업과 직무인가?)', type: 'textarea', placeholder: '지원 기업의 최근 이슈/사업과 내가 가진 관심·경험의 연결고리', sample: '• 귀사가 최근 런칭한 중소기업 맞춤형 클라우드 문서 협업 서비스가 현장의 비효율을 혁신하는 과정에 깊은 인상을 받았습니다.\n• 저 역시 인턴십과 프로젝트를 수행하며 “잘 정리된 표준 서식 하나가 팀 전체의 생산성을 바꾼다”는 것을 체감했고, 귀사의 서비스 운영 직무에서 고객 온보딩과 템플릿 고도화에 기여하고자 지원했습니다.' },
+          { key: 'strength', label: '2. 직무 강점 및 필살기 경험 (무엇을 잘하는가?)', type: 'textarea', placeholder: '지원 직무에서 바로 성과를 낼 수 있는 나만의 역량과 근거 사례', sample: '• 저의 핵심 강점은 ‘복잡한 현장 정보를 누구나 이해하기 쉬운 구조화된 문서로 전환하는 능력’입니다.\n• 실제로 80명 규모의 교육 행사를 운영할 때 중구난방으로 들어오던 현장 건의사항을 3가지 카테고리(시설·교안·일정)로 실시간 분류하고 표준 결과보고서 템플릿을 만들어 당일 퇴근 전 보고를 완료한 경험이 있습니다.' },
+          { key: 'problemSolving', label: '3. 난관 극복 및 협업 경험 (어떻게 문제를 해결했는가?)', type: 'textarea', placeholder: '예상치 못한 문제나 갈등을 주도적으로 해결한 구체적 행동과 결과', sample: '• 팀 프로젝트 당시 팀원 간 보고 양식이 달라 취합에만 이틀이 걸리던 문제가 있었습니다.\n• 이를 해결하기 위해 공통 빈칸 채우기 서식과 체크리스트를 제작해 공유했고, 그 결과 취합 시간을 80% 단축하며 마감 3일 전 기획서 초안을 완성해 최우수 평가를 받았습니다.' },
+          { key: 'aspiration', label: '4. 입사 후 포부 및 기여 계획 (어떻게 성장할 것인가?)', type: 'textarea', placeholder: '입사 직후 단기 실행 목표와 중장기 기여 방안', sample: '• 입사 후 첫 3개월 동안은 기존 고객사 문의 다빈도 항목을 분석하여 ‘1분 따라하기 AI 서식 가이드’를 구축하겠습니다.\n• 나아가 고객 직종별 맞춤형 표준 서식 라이브러리를 확장하여 귀사 서비스의 재구독률을 15% 이상 높이는 핵심 운영 전문가로 성장하겠습니다.' }
+        ]
+      },
+      {
+        id: 'career-statement',
+        persona: 'job',
+        badge: '구직·취업준비',
+        title: '직무 역량 중심 경력·경험 기술서 (STAR 기법)',
+        desc: '상황(Situation)-과제(Task)-행동(Action)-결과(Result) 구조로 내 경험을 설득력 있게 서식화합니다.',
+        fields: [
+          { key: 'targetRole', label: '지원 분야 / 핵심 역량 키워드', placeholder: '예: 마케팅 기획 / 데이터 기반 캠페인 개선 역량', sample: '공공기관 행정지원 및 사업운영 / 민원 프로세스 디지털화 및 일정 관리 역량' },
+          { key: 'projectTitle', label: '대표 경험·프로젝트 제목 및 기간', placeholder: '예: 대학생 서포터즈 SNS 채널 리뉴얼 프로젝트 (2026.03 ~ 2026.08)', sample: '청년 일자리 박람회 참가자 사전등록 및 현장 안내 시스템 개선 (2026.05 ~ 2026.07)' },
+          { key: 'situation', label: '1. 상황 및 해결 과제 (Situation & Task)', type: 'textarea', placeholder: '당시 어떤 문제가 있었고 무엇을 해결해야 했나요?', sample: '• 기존 수기 방명록 작성으로 인해 현장 대기 줄이 30분 이상 발생하고 만족도가 저하됨\n• 예산 추가 없이 대기 시간을 5분 이내로 단축하고 사후 설문 응답률을 높여야 하는 과제 부여' },
+          { key: 'action', label: '2. 본인의 구체적 행동 (Action - 어떻게 해결했는가)', type: 'textarea', placeholder: '내가 주도적으로 실행한 방법과 도구를 적으세요', sample: '• 모바일 QR 사전등록 폼과 현장 자동 명찰 출력 시트를 연동하여 접수 절차 간소화\n• 퇴장 동선에 경품 추첨 연계 모바일 만족도 설문 배너를 배치하여 자발적 참여 유도' },
+          { key: 'result', label: '3. 성과 및 배운 점 (Result - 수치 중심 결과)', type: 'textarea', placeholder: '얼마나 개선되었는지 숫자와 결과로 표현하세요', sample: '• 현장 입장 대기시간 평균 32분 → 3분으로 90% 단축 달성\n• 참가자 만족도 설문 응답률 전회 대비 24%p 상승(총 420명 응답) 및 우수 운영 스태프 선정' }
+        ]
+      },
+      {
+        id: 'interview-script',
+        persona: 'job',
+        badge: '구직·취업준비',
+        title: '면접 1분 자기소개 & 핵심 예상질문 답변서',
+        desc: '실전 면접장에서 바로 활용할 수 있는 두괄식 1분 자기소개 대본과 직무·인성 핵심 답변 구조입니다.',
+        fields: [
+          { key: 'hookTitle', label: '지원 직무 및 나를 표현하는 한 줄 슬로건', placeholder: '예: [영업관리 지원] 현장의 숫자로 해답을 찾는 실행력 전문가 김민수입니다.', sample: '[사업기획·행정 지원] “복잡한 업무는 표준화하고, 현장의 소통은 두 배로 넓히는 실무형 인재 이수빈입니다.”' },
+          { key: 'oneMinuteIntro', label: '1. 실전 1분 자기소개 스크립트 (두괄식)', type: 'textarea', placeholder: '인사말 + 핵심 역량 2가지 + 수치 성과 + 입사 후 기여 다짐', sample: '• 안녕하십니까, 사업기획 및 운영 직무 지원자 이수빈입니다.\n• 저는 지난 1년간 산학협력 프로젝트와 인턴십을 수행하며, 생성형 AI와 표준 템플릿을 활용해 보고서 작성 시간을 60% 단축하고 현장 만족도 96%를 달성한 경험이 있습니다.\n• 귀사에 입사 후에도 탄탄한 문서 기획력과 빠른 디지털 툴 적응력을 바탕으로, 팀의 반복 업무를 줄이고 사업 성과를 극대화하는 데 즉시 기여하겠습니다.' },
+          { key: 'qnaCompetency', label: '2. 직무 핵심 질문 답변 (나의 최고 성과와 비결)', type: 'textarea', placeholder: '면접관이 직무 역량을 물어볼 때 강조할 에피소드', sample: '• [질문: 본인의 직무 강점을 발휘한 대표 사례는?]\n• [답변 요지]: 오프라인 행사 접수 대기시간 문제를 모바일 QR 사전등록과 실시간 현황판 도입으로 해결해 대기시간을 30분에서 3분으로 줄였습니다. 문제를 발견하면 즉시 디지털 도구를 접목해 개선안을 실행하는 것이 저의 강점입니다.' },
+          { key: 'qnaWeakness', label: '3. 약점 보완 및 갈등 해결 답변', type: 'textarea', placeholder: '단점이나 협업 갈등을 어떻게 극복하는지 답변', sample: '• [질문: 협업 중 의견 충돌이 생겼을 때 어떻게 해결하나요?]\n• [답변 요지]: 감정적 설득 대신 양측 안건의 장단점과 예상 소요 예산을 1페이지 비교표로 정리해 공유합니다. 객관적인 기준표를 보며 논의하면 합의 시간을 절반 이하로 줄일 수 있었습니다.' },
+          { key: 'closingWord', label: '4. 면접 마지막 한마디 (클로징 멘트)', placeholder: '면접 종료 전 인상을 남기는 20초 멘트', sample: '• “오늘 면접을 준비하며 귀사의 사업 방향에 맞춰 제가 당장 적용해 볼 수 있는 업무 자동화 서식 3가지를 직접 만들어 보았습니다. 현장에서 바로 뛰는 준비된 신입으로 보답하겠습니다. 감사합니다.”' }
+        ]
+      },
+
+      // 전체 공통 & 내 파일 첨부 (all)
+      {
+        id: 'onepage-plan',
+        persona: 'all',
+        badge: '전체 공통',
+        title: '1페이지 실무 프로젝트 기획서',
+        desc: '누구나 한눈에 이해할 수 있도록 프로젝트의 왜(Why)·무엇을(What)·어떻게(How)를 1장에 압축합니다.',
+        fields: [
+          { key: 'title', label: '기획안 제목', placeholder: '예: 고객 대기시간 단축을 위한 모바일 사전예약제 도입 기획서', sample: '사내·기관 반복 문의 감소를 위한 AI 자주 묻는 질문(FAQ) 가이드북 구축 기획서' },
+          { key: 'why', label: '1. 기획 배경 (Why - 왜 지금 필요한가?)', type: 'textarea', placeholder: '현재 문제점과 기획 계기', sample: '• 매월 동일한 절차·서식 관련 단순 전화 문의가 일평균 25건 발생하여 실무 집중도 저하\n• 스마트폰과 PC에서 즉시 검색 가능한 표준 안내 페이지 구축 필요' },
+          { key: 'what', label: '2. 핵심 목표 및 대상 (What - 무엇을 달성할 것인가?)', type: 'textarea', placeholder: '핵심 타깃과 정량적 목표', sample: '• 대상: 신규 이용자 및 교육 참가자 전원\n• 핵심 목표: 도입 1개월 내 단순 전화 문의 50% 감소 및 안내 만족도 90점 이상 달성' },
+          { key: 'how', label: '3. 세부 실행 방안 (How - 3단계 추진 전략)', type: 'textarea', placeholder: '단계별 실행 액션 아이템', sample: '• 1단계(1주차): 최근 3개월 다빈도 질문 상위 30개 추출 및 표준 답변 정리\n• 2단계(2주차): Google Sites 기반 반응형 안내 페이지 제작 및 서식 다운로드 연동\n• 3단계(3주차): 문자 알림톡 하단에 안내 링크 삽입 및 현장 QR 안내판 비치' },
+          { key: 'schedule', label: '4. 추진 일정 및 리스크 관리', placeholder: '일정 요약 및 예상 문제 해결책', sample: '• 11월 중 제작 완료 및 12월 1일 정식 오픈 (디지털 취약계층을 위한 큰글씨 PDF 병행 제공)' }
+        ]
+      },
+      {
+        id: 'custom-import',
+        persona: 'all',
+        badge: '내 파일 첨부',
+        title: '[기존 서식 반영] 내 서식 파일 첨부 / 직접 입력',
+        desc: '가지고 계신 양식 파일을 첨부하거나 텍스트를 붙여넣어 나만의 빈칸 채우기 실습 화면으로 만듭니다.',
+        fields: []
+      }
+    ];
+
+    const STAGE2_SAMPLES = {
+      public: {
+        title: '2026 하반기 지역 전통시장 디지털 전환 현장 간담회',
+        meta: '2026. 11. 12.(목) 15:00 / 중앙시장 상인교육장 / 상인회장 외 14명',
+        notes: `- 모바일 온누리상품권 및 QR결제 가맹 신청 절차가 고령 상인분들께 너무 복잡함
+- 스마트폰으로 서류 사진 찍어 올리는 단계에서 포기하는 비율이 60% 이상이라고 하심
+- 해결방안 논의: 대학생 디지털 서포터즈 4명을 12월부터 매주 화/목 시장에 파견하여 1:1 방문 신청 지원하기로 함
+- 상인회 요청사항: 카운터에 붙여둘 수 있는 '큰글씨 결제 안내판(코팅본)' 200매 제작 지원 요청 (예산 약 35만 원 소요)
+- 다음주 금요일까지 서포터즈 모집 공고문 초안 작성 후 상인회와 일정 재협의 예정`,
+        attachmentText: `[첨부 사진(화이트보드 판서) 추출 내용]
+1. 핵심 지표: 점포 총 120곳 중 미가맹 48곳 (연내 90% 가맹 목표)
+2. 담당 배정: 서포터즈 운영(김주무관), 안내판 인쇄 발주(박주무관, 11/20 기한)`
+      },
+      startup: {
+        title: '시니어 맞춤 건강도시락 정기구독 서비스 초기 고객 인터뷰 및 시식회',
+        meta: '2026. 11. 10.(화) 11:30 / 공유주방 테스트랩 / 시니어 체험단 8명 및 영양사',
+        notes: `- 시식 평점 평균 4.6점(5점 만점). 저염식인데도 감칠맛이 좋다는 의견이 많았음
+- 포장 용기 개선 필요: 어르신들이 비닐 실링지를 뜯기 힘들어하심 -> 이지필(Easy-Peel) 덮개로 즉시 변경 결정 (단가 개당 45원 상승)
+- 식단표 글씨가 작아서 냉장고에 붙여두고 보기 어렵다는 의견 -> 자석형 큰글씨 주간 식단표 동봉하기로 함
+- 가격 저항선 확인: 주 3회 배송 기준 월 12만 원대에 대해 응답자 8명 중 7명이 정기결제 의향 있음 답변
+- 다음주 월요일 용기 샘플 재발주 및 상세페이지 문구 수정 진행`,
+        attachmentText: `[첨부 현장 사진 & 영수증 메모 반영]
+• 용기 변경 시 원가율 변동: 기존 38% → 39.2% (목표 마진율 이내 유지 가능)
+• 고객 베스트 메뉴 1위: 부드러운 연근조림 & 한우소불고기 덮밥`
+      },
+      job: {
+        title: '2026 AI·디지털 실무 인재 채용박람회 현직자 멘토링 현장 기록',
+        meta: '2026. 11. 09.(월) 13:00 / 컨벤션센터 B홀 / 인사담당자 및 현직자 3명 멘토링',
+        notes: `- 지원 직무: 경영기획 및 데이터 기반 운영 관리 직무
+- 현직자 핵심 조언 1: 단순 자격증 나열보다 실제 업무 서식(보고서, 회의록, 데이터 요약표)을 AI 도구로 얼마나 빠르게 자동화해 봤는지 포트폴리오로 보여주는 것이 압도적으로 유리함
+- 현직자 핵심 조언 2: 이력서에 '성실히 수행함' 대신 '기존 3시간 걸리던 주간 데이터 취합을 템플릿화하여 20분으로 단축(88% 절감)'처럼 전후 수치로 작성할 것
+- 향후 액션 플랜: 이번 주 일요일까지 기존 아르바이트 및 인턴 경험 3가지를 문제-행동-수치결과(STAR) 양식으로 재작성하고, 실습 웹앱으로 만든 업무 자동화 예시 2건을 PDF 포트폴리오에 첨부하기`,
+        attachmentText: `[첨부 채용공고 핵심 우대사항 사진 메모]
+• 우대역량: 생성형 AI 활용 문서 작성 및 업무 프로세스 효율화 경험 보유자
+• 서류 마감일: 2026. 11. 22.(일) 18:00까지`
+      }
+    };
+
+    const DEFAULT_STAGE3_TEMPLATES = [
+      {
+        id: 'v-weekly',
+        name: '1분 요약 주간 핵심 보고서',
+        category: '공공·행정',
+        structure: `■ 문서건명: {{제목}}
+■ 보고일시 및 담당: {{일정}}
+
+1. 추진 배경 및 목적
+{{배경}}
+
+2. 핵심 추진 내용 및 현황
+{{핵심내용}}
+
+3. 향후 조치 계획 및 협조사항
+{{향후계획}}`
+      },
+      {
+        id: 'v-client',
+        name: '고객·파트너 맞춤 제안 요약서',
+        category: '예비창업·소상공인',
+        structure: `[제안 요지: {{제목}}]
+• 작성 기준일 / 담당: {{일정}}
+
+■ 제안 배경 (고객 니즈)
+{{배경}}
+
+■ 핵심 제공 가치 및 세부 조건
+{{핵심내용}}
+
+■ 진행 일정 및 다음 단계 안내
+{{향후계획}}`
+      },
+      {
+        id: 'v-career',
+        name: '직무 경험 성과 요약 노트',
+        category: '구직·취업',
+        structure: `[핵심 역량 및 프로젝트명: {{제목}}]
+• 수행 시기 및 역할: {{일정}}
+
+1. 당시 상황 및 해결 과제 (Situation & Task)
+{{배경}}
+
+2. 주도적 실행 내용 (Action)
+{{핵심내용}}
+
+3. 정량적 성과 및 입사 후 기여 방안 (Result)
+{{향후계획}}`
+      }
+    ];
+
+    const STAGE_CHECKLISTS = {
+      1: [
+        { id: 'c1', text: '목적에 맞는 표준 업무 서식을 선택했거나 내 서식 파일을 불러왔는가?' },
+        { id: 'c2', text: '좌측 빈칸에 핵심 수치(일정, 인원, 예산 등)가 1개 이상 포함되었는가?' },
+        { id: 'c3', text: '우측 실시간 미리보기에서 문체(개조식/설명형/강조형)를 비교해 보았는가?' },
+        { id: 'c4', text: '생성된 프롬프트 또는 완성 문서를 복사·PDF 다운로드하여 확인했는가?' }
+      ],
+      2: [
+        { id: 'c1', text: '변환할 목표 문서 형식(회의록 / 보고서 / 발표자료)을 선택했는가?' },
+        { id: 'c2', text: '현장 메모와 함께 사진(화이트보드 등) 또는 참고 자료 내용이 반영되었는가?' },
+        { id: 'c3', text: '결정 사항과 향후 조치 일정(Action Item)이 문서에 명확히 구분되었는가?' },
+        { id: 'c4', text: '완성된 초안을 복사하거나 PDF 파일로 다운로드해 바로 공유할 수 있는가?' }
+      ],
+      3: [
+        { id: 'c1', text: '내가 자주 쓰는 서식 구조({{배경}}, {{핵심내용}} 등)가 올바르게 저장되었는가?' },
+        { id: 'c2', text: '짧게 입력한 메모가 서식의 각 항목에 알맞게 분배·확장되었는가?' },
+        { id: 'c3', text: '생성된 프롬프트를 복사해 외부 AI에서도 동일 서식을 재현할 수 있는가?' },
+        { id: 'c4', text: '최종 문서를 복사하거나 PDF 파일로 다운로드해 실무에 바로 쓸 수 있는가?' }
+      ]
+    };
+
+    let secretClickCount = 0;
+    let secretClickTimer = null;
+
+    function handleSecretLogoClick() {
+      secretClickCount++;
+      if (secretClickTimer) clearTimeout(secretClickTimer);
+      if (secretClickCount >= 3) {
+        secretClickCount = 0;
+        toggleModal('sites-modal', true);
+      } else {
+        secretClickTimer = setTimeout(() => {
+          secretClickCount = 0;
+        }, 600);
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault();
+        toggleModal('sites-modal', true);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStage3TemplatesFromStorage();
+      renderStage1TemplateGallery();
+      selectStage1Template('work-report');
+      loadStage2Sample('public');
+      fillStage3Sample(false);
+      renderChecklist();
+      renderWorkspace();
+    });
+
+    function switchStage(stageNum) {
+      state.currentStage = stageNum;
+
+      [1, 2, 3].forEach(num => {
+        const tab = document.getElementById(`stage-tab-${num}`);
+        const panel = document.getElementById(`stage-panel-${num}`);
+        const badgeSpan = tab.querySelector('span:first-child');
+
+        if (num === stageNum) {
+          tab.className = 'stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 border-brand-600 bg-brand-50/70 text-left transition-all shadow-sm';
+          badgeSpan.className = 'w-6 h-6 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          panel.classList.remove('hidden');
+        } else {
+          tab.className = 'stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all';
+          badgeSpan.className = 'w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0';
+          panel.classList.add('hidden');
+        }
+      });
+
+      const guideEl = document.getElementById('stage-guide-text');
+      const badgeLabel = document.getElementById('doc-badge-label');
+
+      if (stageNum === 1) {
+        guideEl.innerHTML = `<strong>[1단계: 기본 서식 & 내 파일 반영]</strong> ① 아래에서 실습할 <strong>업무 서식</strong>을 고르거나 <strong>내 서식 파일</strong>을 첨부하세요 → ② 좌측 빈칸을 채우면 <strong>우측에 실시간 서식화</strong>됩니다 → ③ 문체를 바꿔보고 복사·PDF 저장해 활용하세요.`;
+        badgeLabel.textContent = '1단계 · 표준 업무 서식 및 내 양식 반영';
+      } else if (stageNum === 2) {
+        guideEl.innerHTML = `<strong>[2단계: 현장 메모·사진 → 초안 변환]</strong> ① <strong>회의록·보고서·발표자료</strong> 중 목표 양식을 고르세요 → ② <strong>현장 메모</strong>를 적고 <strong>사진/자료 파일</strong>을 첨부하세요 → ③ 우측에서 구조화된 초안과 맞춤형 프롬프트를 확인하세요.`;
+        badgeLabel.textContent = '2단계 · 현장 메모 & 사진 기반 초안 변환';
+      } else {
+        guideEl.innerHTML = `<strong>[3단계: 나만의 서식 저장 & 자동 완성]</strong> ① 자주 쓰는 양식을 <strong>서식 보관함</strong>에 등록하거나 선택하세요 → ② 아래에 <strong>핵심 내용만 간단히 입력</strong>하면 저장된 서식 뼈대에 맞춰 문서 초안이 즉시 완성됩니다.`;
+        badgeLabel.textContent = '3단계 · 나만의 저장 서식 원클릭 생성';
+      }
+
+      renderChecklist();
+      renderWorkspace();
+    }
+
+    function setPersonaFilter(persona) {
+      state.personaFilter = persona;
+      ['all', 'public', 'startup', 'job'].forEach(p => {
+        const btn = document.getElementById(`persona-${p}`);
+        if (p === persona) {
+          btn.className = 'persona-btn px-2.5 py-1 rounded-lg font-semibold bg-white text-brand-700 shadow-sm transition';
+        } else {
+          btn.className = 'persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition';
+        }
+      });
+
+      const defaultTemplateMap = {
+        all: 'work-report',
+        public: 'work-report',
+        startup: 'startup-grant',
+        job: 'job-resume'
+      };
+      const targetTplId = defaultTemplateMap[persona] || 'work-report';
+      selectStage1Template(targetTplId);
+
+      if (persona === 'public' || persona === 'startup' || persona === 'job') {
+        loadStage2Sample(persona);
+        const s3CategoryMap = {
+          public: 'v-weekly',
+          startup: 'v-client',
+          job: 'v-career'
+        };
+        if (s3CategoryMap[persona] && state.stage3Templates.some(t => t.id === s3CategoryMap[persona])) {
+          state.selectedStage3TemplateId = s3CategoryMap[persona];
+          renderStage3VaultList();
+        }
+      }
+
+      const filterNames = {
+        all: '전체 과정 (13종 서식)',
+        public: '공공·행정 과정 맞춤 서식 (업무보고서·기안문·보도자료·민원회신문)',
+        startup: '예비창업·소상공인 맞춤 서식 (사업계획서·제휴제안서·상세페이지 기획안)',
+        job: '구직·취업 맞춤 서식 (표준 이력서·자기소개서·경력기술서·면접 답변서)'
+      };
+      showToast(`✅ ${filterNames[persona]}으로 전환되었습니다.`);
+    }
+
+    function scrollToPreview() {
+      const el = document.getElementById('preview-column');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderStage1TemplateGallery() {
+      const grid = document.getElementById('stage1-template-grid');
+      const filtered = STAGE1_TEMPLATES.filter(t => {
+        if (state.personaFilter === 'all') return true;
+        return t.persona === state.personaFilter || t.persona === 'all';
+      });
+
+      document.getElementById('template-count-badge').textContent = `${filtered.length}종 표시 중`;
+
+      grid.innerHTML = filtered.map(t => {
+        const isSelected = state.selectedStage1TemplateId === t.id;
+        const isCustom = t.id === 'custom-import';
+        return `
+          <button onclick="selectStage1Template('${t.id}')" class="text-left p-3.5 rounded-xl border transition-all flex flex-col justify-between ${
+            isSelected
+              ? 'border-2 border-brand-600 bg-brand-50/70 shadow-sm'
+              : isCustom
+              ? 'border-dashed border-2 border-brand-400 bg-brand-50/20 hover:bg-brand-50/50'
+              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+          }">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                  isCustom ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
+                }">${t.badge}</span>
+                ${isSelected ? '<i class="ph-fill ph-check-circle text-brand-600 text-base"></i>' : ''}
+              </div>
+              <div class="text-xs sm:text-sm font-bold text-slate-900">${t.title}</div>
+              <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${t.desc}</p>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectStage1Template(templateId) {
+      state.selectedStage1TemplateId = templateId;
+      renderStage1TemplateGallery();
+
+      const customBox = document.getElementById('custom-import-box');
+      if (templateId === 'custom-import') {
+        customBox.classList.remove('hidden');
+        if (!document.getElementById('custom-form-raw').value.trim()) {
+          loadSampleCustomForm();
+        } else {
+          parseCustomFormStructure();
+        }
+      } else {
+        customBox.classList.add('hidden');
+        const tpl = STAGE1_TEMPLATES.find(t => t.id === templateId);
+        const hasAnyValue = tpl.fields.some(f => state.stage1Values[`${templateId}_${f.key}`]);
+        if (!hasAnyValue) {
+          tpl.fields.forEach(f => {
+            state.stage1Values[`${templateId}_${f.key}`] = f.sample || '';
+          });
+        }
+        renderStage1InputFields();
+      }
+      renderWorkspace();
+    }
+
+    function renderStage1InputFields() {
+      const container = document.getElementById('stage1-fields-container');
+      const tplId = state.selectedStage1TemplateId;
+
+      if (tplId === 'custom-import') {
+        document.getElementById('stage1-form-title').textContent = 'STEP 1-2. 내 서식에서 추출된 빈칸 채우기';
+        container.innerHTML = state.customParsedFields.map((fieldName, idx) => {
+          const val = state.stage1Values[`custom_${idx}`] || '';
+          return `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">
+                <span class="inline-block w-4 h-4 rounded bg-brand-100 text-brand-800 text-[10px] font-bold text-center leading-4 mr-1">${idx + 1}</span>
+                ${escapeHtml(fieldName)}
+              </label>
+              <textarea rows="2" oninput="updateStage1Field('custom_${idx}', this.value)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="[${escapeHtml(fieldName)}]에 들어갈 내용을 입력하세요">${escapeHtml(val)}</textarea>
+            </div>
+          `;
+        }).join('');
+        return;
+      }
+
+      const tpl = STAGE1_TEMPLATES.find(t => t.id === tplId);
+      document.getElementById('stage1-form-title').textContent = `STEP 1-2. ${tpl.title} 내용 입력`;
+
+      container.innerHTML = tpl.fields.map(f => {
+        const storageKey = `${tplId}_${f.key}`;
+        const val = state.stage1Values[storageKey] || '';
+        if (f.type === 'textarea') {
+          return `
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">${f.label}</label>
+              <textarea rows="3" oninput="updateStage1Field('${storageKey}', this.value)" class="w-full rounded-xl border border-slate-300 p-3 text-xs sm:text-sm leading-relaxed focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="${f.placeholder}">${escapeHtml(val)}</textarea>
+            </div>
+          `;
+        }
+        return `
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">${f.label}</label>
+            <input type="text" value="${escapeHtml(val)}" oninput="updateStage1Field('${storageKey}', this.value)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none" placeholder="${f.placeholder}" />
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStage1Field(key, value) {
+      state.stage1Values[key] = value;
+      renderWorkspace(true);
+    }
+
+    function fillStage1Sample() {
+      const tplId = state.selectedStage1TemplateId;
+      if (tplId === 'custom-import') {
+        const sampleAnswers = [
+          '2026년 시민참여형 스마트 그린도시 리빙랩 운영 결과 보고',
+          '2026. 11. 15. / 스마트도시추진단 김태호 책임',
+          '지역 주민이 직접 생활권 내 환경 문제를 발굴하고 AI·IoT 기술로 해결하는 리빙랩 성과 점검',
+          '• 총 4개 분과 45명 시민 연구단 활동 완료\n• 스마트 빗물받이 막힘 알림 센서 시범 설치(침수 민원 70% 감소)\n• 불법주정차 다발구역 태양광 음성안내판 6개소 설치',
+          '• 우수 해결 과제 2건 내년도 본예산 정식 사업 반영 (예산 8,500만 원 확보)'
+        ];
+        state.customParsedFields.forEach((_, idx) => {
+          state.stage1Values[`custom_${idx}`] = sampleAnswers[idx % sampleAnswers.length];
+        });
+      } else {
+        const tpl = STAGE1_TEMPLATES.find(t => t.id === tplId);
+        tpl.fields.forEach(f => {
+          state.stage1Values[`${tplId}_${f.key}`] = f.sample || '';
+        });
+      }
+      renderStage1InputFields();
+      renderWorkspace(true);
+      showToast('예시 데이터가 빈칸에 자동으로 입력되었습니다.');
+    }
+
+    function resetStage1Fields() {
+      const tplId = state.selectedStage1TemplateId;
+      if (tplId === 'custom-import') {
+        state.customParsedFields.forEach((_, idx) => {
+          state.stage1Values[`custom_${idx}`] = '';
+        });
+      } else {
+        const tpl = STAGE1_TEMPLATES.find(t => t.id === tplId);
+        tpl.fields.forEach(f => {
+          state.stage1Values[`${tplId}_${f.key}`] = '';
+        });
+      }
+      renderStage1InputFields();
+      renderWorkspace();
+      showToast('입력칸을 비웠습니다. 직접 내용을 입력해 보세요.');
+    }
+
+    function handleStage1FileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('stage1-file-status');
+      statusEl.textContent = `📎 첨부됨: ${file.name}`;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      const textExtensions = ['txt', 'md', 'csv', 'json', 'html'];
+
+      if (textExtensions.includes(ext)) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          document.getElementById('custom-form-raw').value = content;
+          parseCustomFormStructure();
+          showToast(`'${file.name}' 파일의 서식 구조를 성공적으로 불러왔습니다.`);
+        };
+        reader.readAsText(file, 'UTF-8');
+      } else {
+        const simulatedTemplate = `■ 문서명: [${file.name.replace(/\.[^/.]+$/, '')} 제목]
+■ 작성일자 및 담당: [작성일자 및 담당자]
+■ 1. 배경 및 목적: [추진 배경 및 작성 목적]
+■ 2. 주요 내용 (파일 핵심 항목): [세부 내용 및 주요 실적]
+■ 3. 소요 자원 및 일정: [예산 또는 추진 일정]
+■ 4. 향후 계획 및 건의사항: [향후 조치 계획]`;
+        document.getElementById('custom-form-raw').value = simulatedTemplate;
+        parseCustomFormStructure();
+        showToast(`'${file.name}' 양식을 분석하여 맞춤 입력 서식으로 변환했습니다.`);
+      }
+    }
+
+    function loadSampleCustomForm() {
+      const sampleRaw = `■ 건 명: [사업 또는 보고서 제목]
+■ 일시 및 작성자: [작성일시 및 소속/성명]
+■ 1. 추진 배경 및 필요성: [추진 배경 및 목적]
+■ 2. 주요 추진 내용 및 실적: [주요 실행 내용 및 수치]
+■ 3. 기대 효과 및 향후 일정: [기대 효과 및 향후 계획]`;
+      document.getElementById('custom-form-raw').value = sampleRaw;
+      parseCustomFormStructure();
+      fillStage1Sample();
+    }
+
+    function parseCustomFormStructure() {
+      const raw = document.getElementById('custom-form-raw').value;
+      const bracketMatches = [...raw.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim());
+
+      if (bracketMatches.length > 0) {
+        state.customParsedFields = [...new Set(bracketMatches)];
+      } else {
+        const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+        const colonFields = lines
+          .filter(l => l.includes(':'))
+          .map(l => l.split(':')[0].replace(/^[■•\-\d.\s]+/, '').trim())
+          .filter(Boolean);
+        state.customParsedFields = colonFields.length > 0
+          ? colonFields.slice(0, 8)
+          : ['문서 제목', '주요 내용', '향후 계획'];
+      }
+      renderStage1InputFields();
+      renderWorkspace();
+    }
+
+    function setStage2OutputType(type) {
+      state.stage2OutputType = type;
+      ['minutes', 'report', 'slides'].forEach(t => {
+        const btn = document.getElementById(`s2-type-${t}`);
+        if (t === type) {
+          btn.className = 's2-type-btn p-3 rounded-xl border-2 border-brand-600 bg-brand-50/70 text-left transition shadow-sm';
+        } else {
+          btn.className = 's2-type-btn p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition';
+        }
+      });
+      renderWorkspace(true);
+    }
+
+    function loadStage2Sample(sampleKey) {
+      const data = STAGE2_SAMPLES[sampleKey] || STAGE2_SAMPLES.public;
+      document.getElementById('s2-title').value = data.title;
+      document.getElementById('s2-meta').value = data.meta;
+      document.getElementById('s2-raw-notes').value = data.notes;
+      document.getElementById('s2-attachment-summary').value = data.attachmentText;
+      renderWorkspace(true);
+    }
+
+    function handleStage2FileUpload(event) {
+      const files = Array.from(event.target.files);
+      if (!files.length) return;
+
+      const previewContainer = document.getElementById('s2-attachments-preview');
+      previewContainer.classList.remove('hidden');
+
+      files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            state.stage2Attachments.push({
+              name: file.name,
+              type: 'image',
+              url: e.target.result
+            });
+            renderStage2AttachmentStrip();
+            const summaryEl = document.getElementById('s2-attachment-summary');
+            const extraNote = `\n• [사진 첨부 반영: ${file.name}] 현장 촬영 이미지 내 주요 수치 및 판서 항목 반영`;
+            if (!summaryEl.value.includes(file.name)) {
+              summaryEl.value = (summaryEl.value + extraNote).trim();
+            }
+            renderWorkspace(true);
+            showToast(`사진 '${file.name}'이 첨부되어 문서 초안에 반영되었습니다.`);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const textSnippet = (e.target.result || '').slice(0, 300);
+            state.stage2Attachments.push({
+              name: file.name,
+              type: 'doc'
+            });
+            renderStage2AttachmentStrip();
+            const summaryEl = document.getElementById('s2-attachment-summary');
+            summaryEl.value = (`[첨부파일(${file.name}) 내용 발췌]\n` + textSnippet).trim();
+            renderWorkspace(true);
+            showToast(`자료 '${file.name}'의 내용을 추출하여 반영했습니다.`);
+          };
+          reader.readAsText(file, 'UTF-8');
+        }
+      });
+    }
+
+    function loadSimulatedPhotoAttachment() {
+      const svgWhiteboard = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+        <rect width="320" height="180" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="4"/>
+        <text x="18" y="32" font-family="sans-serif" font-size="13" font-weight="bold" fill="#0f766e">[화이트보드 현장 판서 사진]</text>
+        <line x1="18" y1="42" x2="300" y2="42" stroke="#cbd5e1" stroke-width="2"/>
+        <text x="18" y="68" font-family="sans-serif" font-size="12" fill="#334155">1. 목표: 12월 내 가맹률 90% 달성 (현재 60%)</text>
+        <text x="18" y="95" font-family="sans-serif" font-size="12" fill="#334155">2. 지원인력: 서포터즈 4명 (화/목 현장 파견)</text>
+        <text x="18" y="122" font-family="sans-serif" font-size="12" fill="#334155">3. 홍보물: 큰글씨 QR 안내판 200개 (예산 35만원)</text>
+        <text x="18" y="149" font-family="sans-serif" font-size="11" fill="#0d9488">★ 차주 금요일까지 시안 확정 필수!</text>
+      </svg>`;
+      const dataUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgWhiteboard);
+
+      state.stage2Attachments = [{
+        name: '현장_화이트보드_촬영사진.jpg',
+        type: 'image',
+        url: dataUrl
+      }];
+      renderStage2AttachmentStrip();
+
+      document.getElementById('s2-attachment-summary').value = `[화이트보드 사진 자동 인식 결과]\n• 정량 목표: 12월 내 가맹률 90% 달성 (현재 60% 수준)\n• 투입 인력 및 예산: 현장 서포터즈 4명 파견, 큰글씨 안내판 200매 제작(35만 원)\n• 핵심 기한: 차주 금요일까지 시안 최종 확정`;
+      renderWorkspace(true);
+      showToast('샘플 화이트보드 촬영 사진과 판서 내용이 반영되었습니다.');
+    }
+
+    function renderStage2AttachmentStrip() {
+      const container = document.getElementById('s2-attachments-preview');
+      if (state.stage2Attachments.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+      container.classList.remove('hidden');
+      container.innerHTML = `
+        <div class="flex flex-wrap gap-2">
+          ${state.stage2Attachments.map((att, idx) => `
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-2 pr-3 shadow-sm">
+              ${att.type === 'image'
+                ? `<img src="${att.url}" alt="${escapeHtml(att.name)}" class="w-14 h-10 object-cover rounded-lg border border-slate-200" />`
+                : `<div class="w-10 h-10 rounded-lg bg-brand-50 text-brand-700 flex items-center justify-center"><i class="ph-bold ph-file-text text-lg"></i></div>`
+              }
+              <div class="text-xs">
+                <div class="font-bold text-slate-800 max-w-[150px] truncate">${escapeHtml(att.name)}</div>
+                <div class="text-[10px] text-emerald-600 font-semibold">✓ 초안에 내용 반영됨</div>
+              </div>
+              <button onclick="removeStage2Attachment(${idx})" class="text-slate-400 hover:text-slate-600 ml-1">
+                <i class="ph-bold ph-x"></i>
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function removeStage2Attachment(idx) {
+      state.stage2Attachments.splice(idx, 1);
+      renderStage2AttachmentStrip();
+      renderWorkspace();
+    }
+
+    function loadStage3TemplatesFromStorage() {
+      try {
+        const saved = localStorage.getItem('ai_doc_workshop_stage3_templates');
+        if (saved) {
+          state.stage3Templates = JSON.parse(saved);
+        } else {
+          state.stage3Templates = [...DEFAULT_STAGE3_TEMPLATES];
+        }
+      } catch (e) {
+        state.stage3Templates = [...DEFAULT_STAGE3_TEMPLATES];
+      }
+      renderStage3VaultList();
+    }
+
+    function saveStage3TemplatesToStorage() {
+      try {
+        localStorage.setItem('ai_doc_workshop_stage3_templates', JSON.stringify(state.stage3Templates));
+      } catch (e) {}
+    }
+
+    function renderStage3VaultList() {
+      const container = document.getElementById('s3-vault-list');
+      container.innerHTML = state.stage3Templates.map(tpl => {
+        const isSelected = state.selectedStage3TemplateId === tpl.id;
+        return `
+          <div onclick="selectStage3Template('${tpl.id}')" class="cursor-pointer p-3.5 rounded-xl border transition-all flex flex-col justify-between ${
+            isSelected
+              ? 'border-2 border-brand-600 bg-brand-50/70 shadow-sm'
+              : 'border-slate-200 bg-white hover:bg-slate-50'
+          }">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">${escapeHtml(tpl.category)}</span>
+                <div class="flex items-center gap-1">
+                  ${isSelected ? '<span class="text-[10px] font-bold text-brand-700">선택됨</span>' : ''}
+                  ${tpl.id.startsWith('user-') ? `<button onclick="deleteStage3Template(event, '${tpl.id}')" class="text-slate-400 hover:text-slate-700 p-0.5" title="삭제"><i class="ph ph-trash"></i></button>` : ''}
+                </div>
+              </div>
+              <div class="text-xs sm:text-sm font-bold text-slate-900">${escapeHtml(tpl.name)}</div>
+              <pre class="text-[10px] text-slate-500 font-mono mt-1.5 line-clamp-2 whitespace-pre-wrap">${escapeHtml(tpl.structure)}</pre>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectStage3Template(id) {
+      state.selectedStage3TemplateId = id;
+      renderStage3VaultList();
+      renderWorkspace(true);
+    }
+
+    function toggleNewTemplateCreator(forceState) {
+      const box = document.getElementById('s3-creator-box');
+      const shouldShow = typeof forceState === 'boolean' ? forceState : box.classList.contains('hidden');
+      if (shouldShow) {
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function handleStage3TemplateFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('s3-new-name').value = file.name.replace(/\.[^/.]+$/, '');
+        document.getElementById('s3-new-structure').value = e.target.result || '';
+        showToast(`'${file.name}' 내용을 서식 뼈대로 불러왔습니다.`);
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function saveNewStage3Template() {
+      const name = document.getElementById('s3-new-name').value.trim() || '나만의 맞춤 업무 서식';
+      const category = document.getElementById('s3-new-category').value;
+      const structure = document.getElementById('s3-new-structure').value.trim() || `[{{제목}}]\n1. 배경: {{배경}}\n2. 핵심내용: {{핵심내용}}\n3. 향후계획: {{향후계획}}`;
+
+      const newTpl = {
+        id: 'user-' + Date.now(),
+        name,
+        category,
+        structure
+      };
+
+      state.stage3Templates.unshift(newTpl);
+      state.selectedStage3TemplateId = newTpl.id;
+      saveStage3TemplatesToStorage();
+      renderStage3VaultList();
+      toggleNewTemplateCreator(false);
+      renderWorkspace(true);
+      showToast(`'${name}' 서식이 보관함에 저장되었습니다!`);
+    }
+
+    function deleteStage3Template(event, id) {
+      event.stopPropagation();
+      state.stage3Templates = state.stage3Templates.filter(t => t.id !== id);
+      if (state.selectedStage3TemplateId === id && state.stage3Templates.length > 0) {
+        state.selectedStage3TemplateId = state.stage3Templates[0].id;
+      }
+      saveStage3TemplatesToStorage();
+      renderStage3VaultList();
+      renderWorkspace();
+      showToast('저장된 서식을 삭제했습니다.');
+    }
+
+    function fillStage3Sample(notify = true) {
+      document.getElementById('s3-input-title').value = '친환경 생분해 포장재 전환 및 시범 도입 계획';
+      document.getElementById('s3-input-date').value = '2026. 11. 16. / 상품기획팀 박진우';
+      document.getElementById('s3-input-memo').value = `기존 플라스틱 용기 공급 단가가 12% 인상됨에 따라 대체 용기 도입이 시급함.
+친환경 생분해 펄프 용기로 변경 시 개당 단가는 동일하게 유지하면서 ESG 친환경 인증 마크 부착 가능.
+12월 1일부터 주력 상품 3종에 우선 적용하고 고객 만족도 설문을 거쳐 내년 1월 전 품목 확대 예정.`;
+      if (notify) {
+        renderWorkspace(true);
+        showToast('3단계 예시 메모가 입력되었습니다.');
+      }
+    }
+
+    function setDocTone(tone) {
+      state.docTone = tone;
+      ['formal', 'polite', 'persuasive'].forEach(t => {
+        const btn = document.getElementById(`tone-${t}`);
+        if (t === tone) {
+          btn.className = 'tone-btn px-2.5 py-1 rounded-lg font-semibold bg-brand-600 text-white transition';
+        } else {
+          btn.className = 'tone-btn px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+        }
+      });
+      renderWorkspace(true);
+    }
+
+    function setDocLength(len) {
+      state.docLength = len;
+      ['standard', 'expanded'].forEach(l => {
+        const btn = document.getElementById(`len-${l}`);
+        if (l === len) {
+          btn.className = 'len-btn px-2 py-1 rounded-lg font-semibold bg-slate-800 text-white transition';
+        } else {
+          btn.className = 'len-btn px-2 py-1 rounded-lg font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+        }
+      });
+      renderWorkspace(true);
+    }
+
+    function fillSampleDataForCurrentStage() {
+      if (state.currentStage === 1) {
+        fillStage1Sample();
+      } else if (state.currentStage === 2) {
+        loadStage2Sample('public');
+        loadSimulatedPhotoAttachment();
+      } else {
+        fillStage3Sample(true);
+      }
+    }
+
+    function resetCurrentStageAll() {
+      if (state.currentStage === 1) {
+        resetStage1Fields();
+      } else if (state.currentStage === 2) {
+        document.getElementById('s2-title').value = '';
+        document.getElementById('s2-meta').value = '';
+        document.getElementById('s2-raw-notes').value = '';
+        document.getElementById('s2-attachment-summary').value = '';
+        state.stage2Attachments = [];
+        renderStage2AttachmentStrip();
+        renderWorkspace();
+        showToast('2단계 입력 내용을 초기화했습니다. 새로운 메모로 다시 연습해 보세요!');
+      } else {
+        document.getElementById('s3-input-title').value = '';
+        document.getElementById('s3-input-date').value = '';
+        document.getElementById('s3-input-memo').value = '';
+        renderWorkspace();
+        showToast('3단계 입력 내용을 초기화했습니다.');
+      }
+    }
+
+    function applyToneTransform(rawText) {
+      if (!rawText || !rawText.trim()) return '<span class="text-slate-400 italic">(좌측 입력창에 내용을 입력하면 이곳에 실시간으로 반영됩니다)</span>';
+
+      const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+      const transformedLines = lines.map(line => {
+        let clean = line.replace(/^[•\-*]\s*/, '');
+
+        if (state.docTone === 'formal') {
+          clean = clean
+            .replace(/했습니다\.?$/g, '함')
+            .replace(/합니다\.?$/g, '함')
+            .replace(/입니다\.?$/g, '임')
+            .replace(/예정입니다\.?$/g, '예정임')
+            .replace(/필요합니다\.?$/g, '필요함');
+        } else if (state.docTone === 'polite') {
+          if (!/(습니다|입니다|바랍니다|드리겠습니다)\.?$/.test(clean)) {
+            clean = clean
+              .replace(/함\.?$/g, '하였습니다.')
+              .replace(/임\.?$/g, '입니다.')
+              .replace(/완료$/g, '완료하였습니다.')
+              .replace(/예정$/g, '진행할 예정입니다.')
+              .replace(/요청$/g, '요청드립니다.');
+            if (!/[.!?]$/.test(clean)) clean += ' (확인 완료되었습니다.)';
+          }
+        } else if (state.docTone === 'persuasive') {
+          clean = `★ [핵심 강조] ${clean}`;
+          if (state.docLength === 'expanded') {
+            clean += ' → 이를 통해 가시적인 성과 창출 및 리스크 사전 예방이 기대됨';
+          }
+        }
+
+        if (state.docLength === 'expanded' && state.docTone !== 'persuasive') {
+          clean += ' (세부 실행 지표 및 일정 교차 점검 병행)';
+        }
+
+        return `• ${escapeHtml(clean)}`;
+      });
+
+      return transformedLines.join('<br/>');
+    }
+
+    function renderWorkspace(animateHighlight = false) {
+      const target = document.getElementById('document-render-target');
+      const promptBox = document.getElementById('generated-prompt-box');
+
+      if (state.currentStage === 1) {
+        const { html, prompt } = buildStage1Output();
+        target.innerHTML = html;
+        promptBox.textContent = prompt;
+      } else if (state.currentStage === 2) {
+        const { html, prompt } = buildStage2Output();
+        target.innerHTML = html;
+        promptBox.textContent = prompt;
+      } else {
+        const { html, prompt } = buildStage3Output();
+        target.innerHTML = html;
+        promptBox.textContent = prompt;
+      }
+
+      if (animateHighlight) {
+        target.classList.remove('live-updated');
+        void target.offsetWidth;
+        target.classList.add('live-updated');
+      }
+    }
+
+    function buildStage1Output() {
+      const tplId = state.selectedStage1TemplateId;
+      const toneLabel = state.docTone === 'formal' ? '공문서 개조식(~함/음)' : state.docTone === 'polite' ? '정중한 비즈니스 경어체(~습니다)' : '설득력 있는 성과 강조형';
+
+      if (tplId === 'custom-import') {
+        const rawTemplate = document.getElementById('custom-form-raw').value;
+        let renderedCustom = escapeHtml(rawTemplate);
+        const promptInputs = [];
+
+        state.customParsedFields.forEach((fieldName, idx) => {
+          const val = state.stage1Values[`custom_${idx}`] || `[${fieldName} 미입력]`;
+          promptInputs.push(`- ${fieldName}: ${val}`);
+          const styledVal = `<span class="font-semibold text-brand-800 bg-brand-50 px-1 rounded">${escapeHtml(val)}</span>`;
+          renderedCustom = renderedCustom.replace(new RegExp(`\\[${escapeRegExp(fieldName)}\\]`, 'g'), styledVal);
+        });
+
+        const html = `
+          <div class="border-b-2 border-slate-800 pb-4 mb-4">
+            <div class="text-xs font-bold text-brand-700 mb-1">[사용자 첨부·반영 커스텀 서식 문서]</div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">${escapeHtml(state.stage1Values['custom_0'] || '사용자 정의 서식 문서')}</h2>
+          </div>
+          <div class="space-y-3 text-xs sm:text-sm leading-relaxed whitespace-pre-line bg-slate-50/70 p-4 rounded-xl border border-slate-200">${renderedCustom}</div>
+          <div class="pt-4 border-t border-slate-200 grid grid-cols-1 gap-2.5">
+            ${state.customParsedFields.map((f, idx) => `
+              <div class="p-3 rounded-lg bg-white border border-slate-200">
+                <div class="text-xs font-bold text-slate-700 mb-1">■ ${escapeHtml(f)}</div>
+                <div class="text-xs sm:text-sm text-slate-800">${applyToneTransform(state.stage1Values[`custom_${idx}`] || '')}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        const prompt = `당신은 전문 문서 작성 비서입니다. 아래 [내가 보유한 서식 양식]의 구조를 그대로 유지하면서, [입력 데이터]를 바탕으로 ${toneLabel} 문체로 다듬어 완성된 문서를 작성해 주세요.\n\n[내가 보유한 서식 양식]\n${rawTemplate}\n\n[입력 데이터]\n${promptInputs.join('\n')}`;
+        return { html, prompt };
+      }
+
+      const tpl = STAGE1_TEMPLATES.find(t => t.id === tplId);
+      const getVal = (key) => state.stage1Values[`${tplId}_${key}`] || '';
+
+      const firstFieldVal = getVal(tpl.fields[0].key) || tpl.title;
+      const rowsHtml = tpl.fields.slice(1).map(f => {
+        const rawVal = getVal(f.key);
+        return `
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-800 border-b border-slate-200">
+              ${escapeHtml(f.label)}
+            </div>
+            <div class="p-3.5 text-xs sm:text-sm text-slate-800 leading-relaxed bg-white">
+              ${applyToneTransform(rawVal)}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const html = `
+        <div class="border-b-2 border-slate-900 pb-4">
+          <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+            <span>분류: ${escapeHtml(tpl.badge)} 표준 양식</span>
+            <span>작성일: 2026. 11. 09.</span>
+          </div>
+          <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">${escapeHtml(firstFieldVal)}</h2>
+        </div>
+        <div class="space-y-3.5">
+          ${rowsHtml}
+        </div>
+      `;
+
+      const promptLines = tpl.fields.map(f => `- ${f.label}: ${getVal(f.key) || '(내용 보완 필요)'}`).join('\n');
+      const prompt = `당신은 실무 문서 작성 전문가입니다. 아래 입력된 기초 내용을 바탕으로 [${tpl.title}] 양식에 맞춰 문서를 작성해 주세요.\n\n[작성 지침]\n1. 문체: ${toneLabel}\n2. 분량 및 스타일: 핵심 수치와 기대효과가 돋보이도록 구조화할 것\n\n[입력 내용]\n${promptLines}`;
+
+      return { html, prompt };
+    }
+
+    function buildStage2Output() {
+      const title = document.getElementById('s2-title').value.trim() || '현장 간담회 및 실무 회의 안건';
+      const meta = document.getElementById('s2-meta').value.trim() || '2026. 11. / 참석자 일동';
+      const rawNotes = document.getElementById('s2-raw-notes').value.trim();
+      const attSummary = document.getElementById('s2-attachment-summary').value.trim();
+      const toneLabel = state.docTone === 'formal' ? '개조식 보고 문체(~함/음)' : state.docTone === 'polite' ? '정중한 비즈니스 문체(~습니다)' : '핵심 성과 강조형 문체';
+
+      const noteLines = rawNotes.split('\n').map(l => l.replace(/^[•\-*]\s*/, '').trim()).filter(Boolean);
+      const issueLines = noteLines.filter(l => /(문제|어렵|포기|힘들|부족|컴플레인|개선)/.test(l));
+      const actionLines = noteLines.filter(l => /(결정|하기로|예정|파견|제작|변경|다음주|까지|기한)/.test(l));
+      const generalLines = noteLines.filter(l => !issueLines.includes(l) && !actionLines.includes(l));
+
+      let html = '';
+      let targetName = '';
+
+      if (state.stage2OutputType === 'minutes') {
+        targetName = '표준 회의록 초안';
+        html = `
+          <div class="border-b-2 border-slate-900 pb-4">
+            <div class="text-xs font-bold text-brand-700 mb-1">[회의록 · Meeting Minutes]</div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">${escapeHtml(title)}</h2>
+            <p class="text-xs text-slate-600 mt-1">■ 일시 / 장소 / 참석: ${escapeHtml(meta)}</p>
+          </div>
+
+          <div class="space-y-4 text-xs sm:text-sm">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="font-bold text-slate-900 mb-1.5">1. 주요 논의 안건 및 현황</div>
+              <div class="text-slate-700 leading-relaxed">${applyToneTransform((generalLines.length ? generalLines : noteLines.slice(0, 2)).join('\n'))}</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200">
+              <div class="font-bold text-amber-950 mb-1.5">2. 현장 건의사항 및 핵심 쟁점</div>
+              <div class="text-slate-800 leading-relaxed">${applyToneTransform((issueLines.length ? issueLines : ['현장 프로세스 간소화 및 안내 강화 필요']).join('\n'))}</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-brand-50/70 border border-brand-200">
+              <div class="font-bold text-brand-950 mb-1.5">3. 결정 사항 및 향후 후속 조치 (Action Items)</div>
+              <div class="text-slate-800 leading-relaxed">${applyToneTransform((actionLines.length ? actionLines : noteLines.slice(-2)).join('\n'))}</div>
+            </div>
+
+            ${attSummary ? `
+              <div class="p-3.5 rounded-xl bg-slate-100 border border-slate-300">
+                <div class="font-bold text-slate-800 mb-1 flex items-center gap-1.5"><i class="ph-bold ph-paperclip text-brand-600"></i> 4. 첨부 사진·자료 반영 사항</div>
+                <div class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">${escapeHtml(attSummary)}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else if (state.stage2OutputType === 'report') {
+        targetName = '결과·동향 보고서 초안';
+        html = `
+          <div class="border-b-2 border-slate-900 pb-4">
+            <div class="text-xs font-bold text-brand-700 mb-1">[결과 보고서 · Result Report]</div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">${escapeHtml(title)} 결과 보고</h2>
+            <p class="text-xs text-slate-600 mt-1">■ 추진 개요: ${escapeHtml(meta)}</p>
+          </div>
+
+          <div class="space-y-3.5 text-xs sm:text-sm">
+            <div class="border border-slate-200 rounded-xl p-3.5">
+              <div class="font-bold text-slate-900 mb-1">Ⅰ. 추진 목적 및 현장 핵심 요약</div>
+              <div class="text-slate-700 leading-relaxed">${applyToneTransform(noteLines.slice(0, 2).join('\n'))}</div>
+            </div>
+            <div class="border border-slate-200 rounded-xl p-3.5">
+              <div class="font-bold text-slate-900 mb-1">Ⅱ. 주요 발굴 과업 및 개선 대책</div>
+              <div class="text-slate-700 leading-relaxed">${applyToneTransform(noteLines.slice(1).join('\n'))}</div>
+            </div>
+            ${attSummary ? `
+              <div class="border border-brand-200 bg-brand-50/50 rounded-xl p-3.5">
+                <div class="font-bold text-brand-900 mb-1">Ⅲ. 현장 자료·사진 분석 데이터</div>
+                <div class="text-slate-800 whitespace-pre-line leading-relaxed">${escapeHtml(attSummary)}</div>
+              </div>
+            ` : ''}
+            <div class="border border-slate-200 rounded-xl p-3.5 bg-slate-50">
+              <div class="font-bold text-slate-900 mb-1">Ⅳ. 향후 추진 일정 및 기대효과</div>
+              <div class="text-slate-700 leading-relaxed">${applyToneTransform((actionLines.length ? actionLines : ['후속 실무 점검 및 결과 환류 예정']).join('\n'))}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        targetName = '발표자료(PPT) 5장 구성 초안';
+        const slides = [
+          { num: 'Slide 01', title: '표지 및 추진 배경', body: `${title}\n(${meta})` },
+          { num: 'Slide 02', title: '현장 현황 및 핵심 문제점 진단', body: (issueLines.length ? issueLines : noteLines.slice(0, 2)).join('\n') },
+          { num: 'Slide 03', title: '첨부 자료 및 현장 데이터 분석', body: attSummary || '현장 주요 지표 및 참가자 의견 종합 데이터' },
+          { num: 'Slide 04', title: '핵심 해결 방안 및 실행 전략', body: (actionLines.length ? actionLines : noteLines.slice(1)).join('\n') },
+          { num: 'Slide 05', title: '추진 로드맵 및 소요 자원', body: '• 단기 즉시 조치 및 차주 후속 점검 일정 확정\n• 정량적 성과 지표 모니터링 체계 가동' }
+        ];
+        html = `
+          <div class="border-b-2 border-slate-900 pb-3">
+            <div class="text-xs font-bold text-brand-700 mb-1">[발표자료 슬라이드 구성안 · 5 Slides Deck]</div>
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">${escapeHtml(title)} 발표 구성안</h2>
+          </div>
+          <div class="grid grid-cols-1 gap-3">
+            ${slides.map(s => `
+              <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col gap-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-extrabold px-2 py-0.5 rounded bg-brand-600 text-white">${s.num}</span>
+                  <span class="text-xs font-bold text-slate-900">${escapeHtml(s.title)}</span>
+                </div>
+                <div class="text-xs sm:text-sm text-slate-700 pl-1 pt-1 border-t border-slate-200/80 leading-relaxed">
+                  ${applyToneTransform(s.body)}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      const prompt = `당신은 수석 기획자이자 문서 작성 전문가입니다. 아래 [현장 속기 메모]와 [첨부 사진·자료 추출 정보]를 빠짐없이 반영하여 [${targetName}]을(를) 작성해 주세요.\n\n[작성 기준]\n- 문서 제목: ${title}\n- 일시/참석자: ${meta}\n- 문체: ${toneLabel}\n- 핵심 수치, 문제점, 결정사항, 담당자별 후속 일정을 명확히 구분할 것\n\n[현장 속기 메모]\n${rawNotes || '(메모 없음)'}\n\n[첨부 사진·자료 추출 정보]\n${attSummary || '(첨부 정보 없음)'}`;
+
+      return { html, prompt };
+    }
+
+    function buildStage3Output() {
+      const tpl = state.stage3Templates.find(t => t.id === state.selectedStage3TemplateId) || state.stage3Templates[0];
+      const title = document.getElementById('s3-input-title').value.trim() || '신규 업무 추진 계획 건';
+      const dateMeta = document.getElementById('s3-input-date').value.trim() || '2026. 11. / 담당자';
+      const memo = document.getElementById('s3-input-memo').value.trim();
+      const toneLabel = state.docTone === 'formal' ? '공문서 개조식(~함/음)' : state.docTone === 'polite' ? '정중한 설명체(~습니다)' : '설득형 제안 문체';
+
+      const sentences = memo
+        .split(/[\n.]/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const bgPart = sentences[0] || '업무 효율성 제고 및 현안 해결을 위한 추진 배경';
+      const corePart = sentences.slice(1, -1).join('\n') || sentences[1] || memo || '핵심 세부 실행 내용';
+      const planPart = sentences[sentences.length - 1] || '향후 일정 점검 및 결과 보고 예정';
+
+      let populated = tpl.structure
+        .replace(/\{\{제목\}\}/g, title)
+        .replace(/\{\{일정\}\}/g, dateMeta)
+        .replace(/\{\{배경\}\}/g, bgPart)
+        .replace(/\{\{핵심내용\}\}/g, corePart)
+        .replace(/\{\{향후계획\}\}/g, planPart);
+
+      const html = `
+        <div class="border-b-2 border-slate-900 pb-4">
+          <div class="flex items-center justify-between text-xs text-brand-700 font-bold mb-1">
+            <span>[내 보관함 서식 자동 적용: ${escapeHtml(tpl.name)}]</span>
+            <span>분류: ${escapeHtml(tpl.category)}</span>
+          </div>
+          <h2 class="text-lg sm:text-xl font-extrabold text-slate-900">${escapeHtml(title)}</h2>
+          <p class="text-xs text-slate-500 mt-1">기준일 및 담당: ${escapeHtml(dateMeta)}</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-800 whitespace-pre-line leading-relaxed">${escapeHtml(populated)}</div>
+
+        <div class="p-4 rounded-xl bg-brand-50/60 border border-brand-200 space-y-2">
+          <div class="text-xs font-bold text-brand-900">✨ 선택한 문체(${toneLabel}) 변환 본문</div>
+          <div class="text-xs sm:text-sm text-slate-800 leading-relaxed">
+            ${applyToneTransform(sentences.join('\n'))}
+          </div>
+        </div>
+      `;
+
+      const prompt = `아래 [내가 저장해 둔 전용 서식]의 목차와 형식을 정확히 유지하면서, [핵심 메모]를 바탕으로 빈칸을 풍부하고 논리적으로 채워 완성본 문서를 작성해 주세요.\n\n[작성 문체]: ${toneLabel}\n\n[내가 저장해 둔 전용 서식]\n${tpl.structure}\n\n[핵심 메모]\n- 제목: ${title}\n- 일시/담당: ${dateMeta}\n- 핵심 내용: ${memo}`;
+
+      return { html, prompt };
+    }
+
+    function renderChecklist() {
+      const items = STAGE_CHECKLISTS[state.currentStage] || STAGE_CHECKLISTS[1];
+      const container = document.getElementById('checklist-items');
+      container.innerHTML = items.map(item => `
+        <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-brand-50/40 cursor-pointer transition text-xs text-slate-700">
+          <input type="checkbox" onchange="updateChecklistProgress()" class="chk-item mt-0.5 w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300" />
+          <span class="leading-snug">${escapeHtml(item.text)}</span>
+        </label>
+      `).join('');
+      updateChecklistProgress();
+    }
+
+    function updateChecklistProgress() {
+      const checks = Array.from(document.querySelectorAll('.chk-item'));
+      const done = checks.filter(c => c.checked).length;
+      const total = checks.length || 4;
+      const pct = Math.round((done / total) * 100);
+
+      document.getElementById('checklist-score').textContent = `${done} / ${total} 완료`;
+      document.getElementById('checklist-progress').style.width = `${pct}%`;
+    }
+
+    function copyPromptToClipboard() {
+      const text = document.getElementById('generated-prompt-box').textContent;
+      copyTextWithFallback(text, '맞춤형 AI 프롬프트가 클립보드에 복사되었습니다!');
+    }
+
+    function copyRenderedDocument() {
+      const docEl = document.getElementById('document-render-target');
+      const plainText = docEl.innerText || docEl.textContent;
+      copyTextWithFallback(plainText, '완성된 문서 초안이 클립보드에 복사되었습니다!');
+    }
+
+    // 1-Click Self HTML Downloader for GitHub Pages Upload
+    function downloadSelfHtmlFile() {
+      const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'index.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('🚀 깃허브 업로드용 index.html 파일이 다운로드되었습니다!');
+    }
+
+    function getDynamicPdfFilename() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}${mm}${dd}`;
+
+      let rawTitle = 'AI실습문서';
+      if (state.currentStage === 1) {
+        const tplId = state.selectedStage1TemplateId;
+        if (tplId === 'custom-import') {
+          rawTitle = state.stage1Values['custom_0'] || '내맞춤서식문서';
+        } else {
+          const tpl = STAGE1_TEMPLATES.find(t => t.id === tplId);
+          const firstFieldKey = tpl && tpl.fields[0] ? `${tplId}_${tpl.fields[0].key}` : '';
+          rawTitle = (firstFieldKey && state.stage1Values[firstFieldKey]) || (tpl ? tpl.title : '업무보고서');
+        }
+      } else if (state.currentStage === 2) {
+        const typeSuffix = state.stage2OutputType === 'minutes' ? '회의록' : state.stage2OutputType === 'report' ? '결과보고서' : '발표자료초안';
+        const s2Title = document.getElementById('s2-title')?.value.trim();
+        rawTitle = s2Title ? `${s2Title}_${typeSuffix}` : typeSuffix;
+      } else {
+        const s3Title = document.getElementById('s3-input-title')?.value.trim();
+        const tpl = state.stage3Templates.find(t => t.id === state.selectedStage3TemplateId);
+        rawTitle = s3Title || (tpl ? tpl.name : '자동완성문서');
+      }
+
+      const cleanTitle = rawTitle
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .replace(/\s+/g, '_')
+        .slice(0, 45);
+
+      return `${cleanTitle || '업무문서초안'}_${dateStr}.pdf`;
+    }
+
+    async function downloadDocumentAsPDF() {
+      const btn = document.getElementById('pdf-download-btn');
+      const btnText = document.getElementById('pdf-download-btn-text');
+      const btnIcon = btn ? btn.querySelector('i') : null;
+      const sourceEl = document.getElementById('document-render-target');
+
+      if (!sourceEl) return;
+
+      if (typeof html2pdf === 'undefined') {
+        showToast('PDF 생성 라이브러리를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
+        return;
+      }
+
+      const filename = getDynamicPdfFilename();
+
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = 'PDF 생성 중...';
+      if (btnIcon) btnIcon.className = 'fa-solid fa-spinner fa-spin';
+
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '0';
+      wrapper.style.width = '760px';
+      wrapper.style.backgroundColor = '#ffffff';
+      wrapper.style.padding = '28px 32px';
+      wrapper.style.color = '#0f172a';
+      wrapper.style.fontFamily = "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif";
+
+      const clone = sourceEl.cloneNode(true);
+      clone.classList.remove('live-updated');
+      clone.querySelectorAll('.border-dashed').forEach(el => {
+        el.classList.remove('border-dashed');
+      });
+
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      const opt = {
+        margin: [12, 12, 12, 12],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          windowWidth: 800
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait'
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      try {
+        await html2pdf().set(opt).from(wrapper).save();
+        showToast(`📄 PDF 파일(${filename}) 다운로드가 완료되었습니다!`);
+      } catch (err) {
+        console.error('PDF generation error:', err);
+        showToast('PDF 파일 생성 중 오류가 발생했습니다. 다시 시도해 주세요.');
+      } finally {
+        if (wrapper && wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper);
+        }
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'PDF 다운로드';
+        if (btnIcon) btnIcon.className = 'fa-solid fa-file-pdf';
+      }
+    }
+
+    function copyTextWithFallback(text, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (err) {
+        showToast('복사에 실패했습니다. 텍스트를 직접 선택해 복사해 주세요.');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function toggleModal(modalId, show) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      if (show) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      const msgEl = document.getElementById('toast-message');
+      msgEl.textContent = msg;
+      box.classList.remove('translate-y-20', 'opacity-0');
+      box.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.add('translate-y-20', 'opacity-0');
+        box.classList.remove('translate-y-0', 'opacity-100');
+      }, 2800);
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeRegExp(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+  </script>
+</body>
+</html>
