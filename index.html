@@ -27,14 +27,16 @@
           },
           colors: {
             brand: {
-              50: '#f0fdfa',
-              100: '#ccfbf1',
-              200: '#99f6e4',
-              500: '#14b8a6',
-              600: '#0d9488',
-              700: '#0f766e',
-              800: '#115e59',
-              900: '#134e4a',
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
             }
           }
         }
@@ -45,9 +47,16 @@
   <style>
     body {
       font-family: 'Pretendard', sans-serif;
-      background-color: #f8fafc;
+      background-color: #f5f6fb;
       color: #1e293b;
       overflow-x: hidden;
+    }
+
+    /* Section Header Underline Style */
+    .section-header-line {
+      border-bottom: 2px solid #4f46e5;
+      padding-bottom: 0.65rem;
+      margin-bottom: 1rem;
     }
 
     /* A4 Document Paper Styling */
@@ -59,176 +68,271 @@
       transition: all 0.25s ease;
     }
 
-    /* Highlight animation when live text updates */
+    /* Highlight animation when live preview updates */
     @keyframes pulseHighlight {
-      0% { background-color: rgba(20, 184, 166, 0.22); }
+      0% { background-color: rgba(99, 102, 241, 0.14); }
       100% { background-color: transparent; }
     }
     .live-updated {
-      animation: pulseHighlight 1.2s ease-out;
-      border-radius: 4px;
-      padding: 0 2px;
-    }
-
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
+      animation: pulseHighlight 0.7s ease-out;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+<body class="min-h-screen flex flex-col bg-[#f5f6fb] text-slate-800">
 
   <!-- TOP NAVIGATION BAR -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm no-print">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between py-3 gap-3">
+      <div class="flex items-center justify-between py-3 gap-2">
         
-        <!-- Brand & Workshop Badge -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div onclick="handleSecretLogoClick()" title="강사 전용 메뉴 (연속 3번 클릭 또는 Alt+G)" class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white shadow-sm select-none cursor-pointer">
-              <i class="ph-bold ph-files text-xl"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900">AI 문서 자동화 실습 스튜디오</h1>
-                <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700 border border-brand-200">
-                  실습형 워크스페이스
-                </span>
-              </div>
-              <p class="text-xs text-slate-500">구직자 · 예비창업자 · 공공/일반행정 실무 문서 작성 훈련</p>
+        <!-- Brand & Sparkle Logo (Indigo Theme) -->
+        <div class="flex items-center gap-2.5">
+          <div onclick="handleSecretLogoClick()" title="강사 전용 메뉴 (연속 3번 클릭 또는 Alt+G)" class="w-9 h-9 rounded-xl bg-brand-600 text-white shadow-sm flex items-center justify-center select-none cursor-pointer hover:bg-brand-700 transition">
+            <i class="ph-bold ph-sparkle text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-slate-900">AI 문서 자동화 실습 비서함</h1>
+              <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-brand-50 text-brand-700 border border-brand-200">
+                스마트 워크스페이스
+              </span>
             </div>
           </div>
-
-          <!-- Mobile Quick Preview Jump Button -->
-          <button onclick="scrollToPreview()" class="md:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white shadow-sm">
-            <i class="ph-bold ph-eye"></i> 결과보기
-          </button>
         </div>
 
-        <!-- Right Controls: Target Filter & Student Utility Buttons -->
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Target Audience Filter -->
-          <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-            <span class="px-2 py-1 text-slate-500 font-medium hidden sm:inline"><i class="ph ph-users-three mr-1"></i>과정 필터:</span>
-            <button onclick="setPersonaFilter('all')" id="persona-all" class="persona-btn px-2.5 py-1 rounded-lg font-semibold bg-white text-brand-700 shadow-sm transition">전체</button>
-            <button onclick="setPersonaFilter('public')" id="persona-public" class="persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">공공·행정</button>
-            <button onclick="setPersonaFilter('startup')" id="persona-startup" class="persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">예비창업·소상공인</button>
-            <button onclick="setPersonaFilter('job')" id="persona-job" class="persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">구직·취업</button>
-          </div>
-
-          <!-- Student Utility Buttons -->
-          <button onclick="toggleModal('example-compare-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition shadow-sm">
-            <i class="ph-bold ph-arrows-left-right text-brand-600"></i>
-            <span>우수 결과물 예시 비교</span>
+        <!-- Right Quick Action Buttons -->
+        <div class="flex items-center gap-1.5">
+          <button onclick="scrollToPreview()" class="lg:hidden inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm">
+            <i class="ph-bold ph-file-text"></i> 완성문서 보기
           </button>
-          <button onclick="resetCurrentStageAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+          <button onclick="toggleModal('example-compare-modal', true)" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 transition">
+            <i class="ph-bold ph-lightbulb text-amber-600"></i>
+            <span class="hidden sm:inline">사용법·</span><span>예시</span>
+          </button>
+          <button onclick="resetCurrentStageAll()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition" title="처음부터 다시 연습">
             <i class="ph-bold ph-arrow-counter-clockwise"></i>
-            <span>처음부터 다시 연습</span>
+            <span class="hidden sm:inline">초기화</span>
           </button>
         </div>
-      </div>
-
-      <!-- 3-STAGE CURRICULUM TABS -->
-      <div class="grid grid-cols-3 gap-1.5 sm:gap-3 pt-1 pb-3">
-        <button onclick="switchStage(1)" id="stage-tab-1" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 border-brand-600 bg-brand-50/70 text-left transition-all">
-          <div class="flex items-center gap-2.5">
-            <span class="w-6 h-6 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-            <div>
-              <div class="text-xs sm:text-sm font-bold text-brand-900">기본 서식 & 내 파일 반영</div>
-              <div class="text-[11px] text-brand-700 hidden md:block">업무 서식 선택 · 빈칸 채우기 · 내 서식 첨부</div>
-            </div>
-          </div>
-          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-100 text-brand-800 mt-1 sm:mt-0">기초 실습</span>
-        </button>
-
-        <button onclick="switchStage(2)" id="stage-tab-2" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all">
-          <div class="flex items-center gap-2.5">
-            <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">2</span>
-            <div>
-              <div class="text-xs sm:text-sm font-bold text-slate-800">현장 메모·사진 → 초안 변환</div>
-              <div class="text-[11px] text-slate-500 hidden md:block">메모·자료·사진으로 회의록/보고서/발표자료 생성</div>
-            </div>
-          </div>
-          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1 sm:mt-0">핵심 실습</span>
-        </button>
-
-        <button onclick="switchStage(3)" id="stage-tab-3" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all">
-          <div class="flex items-center gap-2.5">
-            <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">3</span>
-            <div>
-              <div class="text-xs sm:text-sm font-bold text-slate-800">나만의 서식 저장 & 자동 완성</div>
-              <div class="text-[11px] text-slate-500 hidden md:block">자주 쓰는 서식 등록 후 핵심만 입력해 초안 생성</div>
-            </div>
-          </div>
-          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1 sm:mt-0">실무 자동화</span>
-        </button>
       </div>
     </div>
   </header>
 
-  <!-- STEP-BY-STEP PEDAGOGICAL GUIDE BANNER -->
-  <section class="bg-slate-900 text-white border-b border-slate-800 no-print">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div class="flex items-start sm:items-center gap-3">
-          <span class="px-2.5 py-1 rounded-lg bg-brand-500/20 border border-brand-400/30 text-brand-300 text-xs font-bold shrink-0">
-            <i class="ph-bold ph-compass mr-1"></i>단계별 실습 가이드
-          </span>
-          <p id="stage-guide-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
-            <strong>[1단계]</strong> ① 아래에서 실습할 <strong>업무 서식</strong>을 고르거나 <strong>기존 서식 파일</strong>을 첨부하세요 → ② 좌측 입력창에 내용을 채우면 <strong>우측 문서에 실시간 반영</strong>됩니다 → ③ 생성된 <strong>프롬프트</strong>를 복사하거나 문체를 바꿔보세요.
+  <!-- MOBILE-FIRST CLEAN HERO & QUICK HUB SECTION -->
+  <section class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 no-print">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+
+      <!-- Left: Soft Lavender-Indigo Hero Card with Search Bar -->
+      <div class="lg:col-span-7 rounded-3xl overflow-hidden border border-indigo-200/80 bg-gradient-to-br from-[#e0e7ff] via-[#eef2ff] to-[#fdf4ff] shadow-sm flex flex-col justify-between">
+        <div class="p-5 sm:p-6 space-y-3">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/80 border border-indigo-200 text-xs font-bold text-brand-700 shadow-2xs">
+            <i class="ph-fill ph-shooting-star text-brand-600"></i>
+            <span>구직자 · 예비창업자 · 공공·일반행정 업무 지원</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug tracking-tight">
+            혼자서도 든든한<br/>
+            업무파트너, <span class="text-brand-600">AI 문서 비서함</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            공문·보고서·이력서·사업계획서는 서식으로, 현장 메모·사진은 회의록·발표자료 초안으로 바로 완성으로.
           </p>
+
+          <!-- Search Input Bar inside Hero -->
+          <div class="pt-1">
+            <div class="relative flex items-center bg-white rounded-2xl border border-indigo-200/90 shadow-sm px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-brand-500">
+              <i class="ph ph-magnifying-glass text-brand-500 text-lg mr-2.5 shrink-0"></i>
+              <input
+                type="text"
+                id="template-search-input"
+                oninput="handleTemplateSearch(this.value)"
+                class="w-full text-xs sm:text-sm text-slate-800 placeholder-slate-400 outline-none bg-transparent"
+                placeholder="찾을 업무를 입력하세요 (예: 공문, 보고서, 이력서, 자소서, 창업)"
+              />
+              <button onclick="clearTemplateSearch()" id="template-search-clear" class="hidden text-slate-400 hover:text-slate-600 ml-1">
+                <i class="ph-bold ph-x-circle text-base"></i>
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button onclick="fillSampleDataForCurrentStage()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-400 text-slate-950 hover:bg-amber-300 transition shadow-sm">
+
+        <!-- Bottom Graphic Banner (Soft Indigo-Violet) -->
+        <div class="relative h-24 sm:h-28 w-full overflow-hidden bg-gradient-to-r from-[#dbe4ff] via-[#ede9fe] to-[#fce7f3] border-t border-indigo-200/60 flex items-center justify-between px-5 sm:px-6">
+          <div class="flex items-center gap-3 z-10">
+            <div class="w-12 h-12 rounded-2xl bg-white/95 border border-indigo-200 flex items-center justify-center text-brand-600 shadow-sm shrink-0">
+              <i class="ph-duotone ph-files text-3xl"></i>
+            </div>
+            <div>
+              <div class="text-xs sm:text-sm font-extrabold text-brand-900">빈칸만 채우면 공적 문서 초안 완성</div>
+              <div class="text-[11px] text-brand-700 mt-0.5">스마트폰·노트북 어디서나 작성 후 즉시 PDF 다운로드</div>
+            </div>
+          </div>
+          <button onclick="fillSampleDataForCurrentStage()" class="z-10 shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-brand-600 text-white hover:bg-brand-700 shadow-sm transition">
             <i class="ph-bold ph-magic-wand"></i>
-            <span>1초 예시 데이터 자동 입력</span>
-          </button>
-          <button onclick="toggleModal('example-compare-modal', true)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 transition">
-            <i class="ph-bold ph-arrows-left-right"></i>
-            <span>우수 결과물 예시 보기</span>
+            <span>1초 예시 채우기</span>
           </button>
         </div>
+      </div>
+
+      <!-- Right: "업무 바로가기" 3x2 Icon Card Grid + 2 Action Banners -->
+      <div class="lg:col-span-5 bg-white rounded-3xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4">
+        <div>
+          <div class="section-header-line flex items-center justify-between">
+            <h3 class="text-base font-extrabold text-slate-900">업무 바로가기</h3>
+            <span class="text-[11px] font-semibold text-brand-600">클릭 시 맞춤 서식 이동</span>
+          </div>
+
+          <!-- 3x2 Clean Icon Grid -->
+          <div class="grid grid-cols-3 gap-2.5">
+            <button onclick="quickJumpShortcut('public', 'work-report')" class="shortcut-card group p-3 rounded-2xl border border-slate-200 bg-[#f9faff] hover:border-brand-500 hover:bg-brand-50/60 transition flex flex-col items-center text-center">
+              <i class="ph-duotone ph-file-text text-2xl text-brand-600 mb-1.5 group-hover:scale-110 transition"></i>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">공문·보고서</span>
+              <span class="text-[11px] text-slate-500 mt-0.5 leading-tight">주간보고·기안문</span>
+            </button>
+
+            <button onclick="quickJumpShortcut('public', 'press-release')" class="shortcut-card group p-3 rounded-2xl border border-slate-200 bg-[#f9faff] hover:border-brand-500 hover:bg-brand-50/60 transition flex flex-col items-center text-center">
+              <i class="ph-duotone ph-megaphone text-2xl text-violet-600 mb-1.5 group-hover:scale-110 transition"></i>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">홍보·안내</span>
+              <span class="text-[11px] text-slate-500 mt-0.5 leading-tight">보도자료·회신문</span>
+            </button>
+
+            <button onclick="quickJumpShortcut('startup', 'startup-grant')" class="shortcut-card group p-3 rounded-2xl border border-slate-200 bg-[#f9faff] hover:border-brand-500 hover:bg-brand-50/60 transition flex flex-col items-center text-center">
+              <i class="ph-duotone ph-rocket-launch text-2xl text-sky-600 mb-1.5 group-hover:scale-110 transition"></i>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">창업·제안서</span>
+              <span class="text-[11px] text-slate-500 mt-0.5 leading-tight">사업계획·제휴</span>
+            </button>
+
+            <button onclick="quickJumpShortcut('job', 'job-resume')" class="shortcut-card group p-3 rounded-2xl border border-slate-200 bg-[#f9faff] hover:border-brand-500 hover:bg-brand-50/60 transition flex flex-col items-center text-center">
+              <i class="ph-duotone ph-identification-card text-2xl text-rose-500 mb-1.5 group-hover:scale-110 transition"></i>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">이력서·자소서</span>
+              <span class="text-[11px] text-slate-500 mt-0.5 leading-tight">구직·면접대본</span>
+            </button>
+
+            <button onclick="quickJumpShortcut('all', 'onepage-plan')" class="shortcut-card group p-3 rounded-2xl border border-slate-200 bg-[#f9faff] hover:border-brand-500 hover:bg-brand-50/60 transition flex flex-col items-center text-center">
+              <i class="ph-duotone ph-lightbulb-filament text-2xl text-amber-500 mb-1.5 group-hover:scale-110 transition"></i>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">1장 기획서</span>
+              <span class="text-[11px] text-slate-500 mt-0.5 leading-tight">실무 프로젝트</span>
+            </button>
+
+            <button onclick="quickJumpShortcut('all', 'custom-import')" class="shortcut-card group p-3 rounded-2xl border border-slate-200 bg-[#f9faff] hover:border-brand-500 hover:bg-brand-50/60 transition flex flex-col items-center text-center">
+              <i class="ph-duotone ph-folder-simple-plus text-2xl text-brand-600 mb-1.5 group-hover:scale-110 transition"></i>
+              <span class="text-xs sm:text-sm font-extrabold text-slate-900">내 파일 첨부</span>
+              <span class="text-[11px] text-slate-500 mt-0.5 leading-tight">보유 양식 반영</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2 Wide Action Banners with Distinct Indigo & Warm Rose-Amber Palette -->
+        <div class="space-y-2.5 pt-1">
+          <!-- Indigo Banner: Stage 3 My Template Vault -->
+          <div onclick="switchStage(3)" class="cursor-pointer rounded-2xl border-2 border-brand-500 bg-brand-50/80 hover:bg-brand-100/70 px-4 py-3 flex items-center justify-between gap-3 transition">
+            <div class="flex items-center gap-3">
+              <i class="ph-bold ph-bookmarks text-2xl text-brand-600 shrink-0"></i>
+              <div>
+                <div class="text-xs sm:text-sm font-extrabold text-brand-900">자주 쓰는 내 서식 등록·보관함</div>
+                <div class="text-[11px] text-slate-600">한 번 넣어두면 핵심만 적어 초안 자동 완성</div>
+              </div>
+            </div>
+            <span class="shrink-0 px-3 py-1.5 rounded-full bg-brand-600 text-white text-xs font-bold shadow-sm">등록하기</span>
+          </div>
+
+          <!-- Warm Peach-Amber Banner: Stage 2 Field Memo & Photo to Minutes -->
+          <div onclick="switchStage(2)" class="cursor-pointer rounded-2xl border border-rose-200 bg-gradient-to-r from-[#fff5f5] to-[#fffbeb] hover:from-[#ffe4e6] hover:to-[#fef3c7] px-4 py-3 flex items-center justify-between gap-3 transition">
+            <div class="flex items-center gap-3">
+              <i class="ph-bold ph-camera text-2xl text-rose-500 shrink-0"></i>
+              <div>
+                <div class="text-xs sm:text-sm font-extrabold text-slate-900">현장 메모·사진으로 서식 만들기</div>
+                <div class="text-[11px] text-slate-600">메모·화이트보드 사진 → 회의록·보고서·발표자료 초안</div>
+              </div>
+            </div>
+            <span class="shrink-0 px-3.5 py-1.5 rounded-full bg-white border border-rose-300 text-rose-700 text-xs font-bold shadow-sm">시작</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 3-STAGE CURRICULUM TABS BAR -->
+    <div class="mt-4 bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
+      <div class="grid grid-cols-3 gap-1.5 sm:gap-2.5">
+        <button onclick="switchStage(1)" id="stage-tab-1" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-2.5 rounded-xl border-2 border-brand-600 bg-brand-50/70 text-left transition-all">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+            <div>
+              <div class="text-xs sm:text-sm font-extrabold text-brand-900">서식 자료실 & 빈칸 실습</div>
+              <div class="text-[11px] text-brand-700 hidden md:block">표준 서식 13종 · 내 서식 파일 첨부</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-800 mt-1 sm:mt-0">1단계</span>
+        </button>
+
+        <button onclick="switchStage(2)" id="stage-tab-2" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">2</span>
+            <div>
+              <div class="text-xs sm:text-sm font-extrabold text-slate-800">메모·사진 → 초안 변환</div>
+              <div class="text-[11px] text-slate-500 hidden md:block">회의록 · 결과보고서 · 발표자료 생성</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1 sm:mt-0">2단계</span>
+        </button>
+
+        <button onclick="switchStage(3)" id="stage-tab-3" class="stage-tab group flex flex-col sm:flex-row items-start sm:items-center justify-between p-2.5 sm:px-4 sm:py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-left transition-all">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">3</span>
+            <div>
+              <div class="text-xs sm:text-sm font-extrabold text-slate-800">내 서식 보관함 & 자동완성</div>
+              <div class="text-[11px] text-slate-500 hidden md:block">자주 쓰는 서식 저장 후 원클릭 완성</div>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1 sm:mt-0">3단계</span>
+        </button>
+      </div>
+      <!-- Subtle Step Guide Line -->
+      <div class="mt-2 pt-2 border-t border-slate-100 px-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+        <p id="stage-guide-text" class="leading-relaxed">
+          <strong>[1단계]</strong> ① 아래 <strong>서식 자료실</strong>에서 업무 서식을 고르거나 내 파일을 첨부하세요 → ② 빈칸을 채우면 <strong>우측 문서에 실시간 서식화</strong>됩니다.
+        </p>
       </div>
     </div>
   </section>
 
   <!-- MAIN WORKSPACE: SPLIT SCREEN -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
       <!-- LEFT COLUMN: STAGE CONTROLS, TEMPLATE PICKER, INPUTS, FILE UPLOAD & PROMPT -->
-      <div class="lg:col-span-6 space-y-6 no-print">
+      <div class="lg:col-span-6 space-y-5 no-print">
 
         <!-- ==================== STAGE 1 PANEL ==================== -->
         <div id="stage-panel-1" class="space-y-5">
           
-          <!-- 1-A. Template Selection Gallery -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-              <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                  <i class="ph-fill ph-folders text-brand-600 text-lg"></i>
-                  <span>STEP 1-1. 업무 서식 선택 또는 내 서식 파일 불러오기</span>
-                </h2>
-                <p class="text-xs text-slate-500 mt-0.5">상단 과정 필터(공공·창업·구직)를 누르면 맞춤 서식이 나타나며, 내 파일을 직접 첨부할 수도 있습니다.</p>
+          <!-- 1-A. Template Selection Archive ("서식 자료실" Clean List Style) -->
+          <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+            <div class="section-header-line flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900">서식 자료실</h2>
+                <span id="template-count-badge" class="text-[11px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200">13종</span>
               </div>
-              <span id="template-count-badge" class="text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-200 shrink-0">13종 지원</span>
+              <div class="flex items-center gap-3 text-xs font-bold">
+                <button onclick="selectStage1Template('custom-import')" class="text-brand-600 hover:text-brand-800 flex items-center gap-0.5">
+                  <span>+ 내 서식 파일 넣기</span>
+                </button>
+                <button onclick="setPersonaFilter('all')" class="text-slate-500 hover:text-slate-800 flex items-center gap-0.5">
+                  <span>전체 보기 ›</span>
+                </button>
+              </div>
             </div>
 
-            <!-- Template Cards Grid -->
-            <div id="stage1-template-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <!-- Category Filter Pills inside Archive Card -->
+            <div class="flex flex-wrap items-center gap-1.5 mb-3">
+              <button onclick="setPersonaFilter('all')" id="persona-all" class="persona-btn px-3 py-1 rounded-full text-xs font-bold bg-brand-600 text-white shadow-sm transition">전체</button>
+              <button onclick="setPersonaFilter('public')" id="persona-public" class="persona-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">공공·행정</button>
+              <button onclick="setPersonaFilter('startup')" id="persona-startup" class="persona-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">예비창업·소상공인</button>
+              <button onclick="setPersonaFilter('job')" id="persona-job" class="persona-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">구직·취업(이력서/자소서)</button>
+            </div>
+
+            <!-- Numbered Clean List matching Screenshot 1 ("1 공문 [사용법] [✏️ 작성]") -->
+            <div id="stage1-template-grid" class="divide-y divide-slate-100">
               <!-- Populated dynamically via JS -->
             </div>
 
@@ -273,12 +377,12 @@
           </div>
 
           <!-- 1-B. Dynamic Guided Fill-in Fields -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div id="stage1-input-card" class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+            <div class="section-header-line flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
                   <i class="ph-fill ph-pencil-line text-brand-600 text-lg"></i>
-                  <span id="stage1-form-title">STEP 1-2. 서식 빈칸 내용 입력</span>
+                  <span id="stage1-form-title">서식 빈칸 내용 입력</span>
                 </h2>
                 <p class="text-xs text-slate-500 mt-0.5">핵심 단어만 짧게 적어도 우측 문서에 서식화되어 즉시 반영됩니다.</p>
               </div>
@@ -303,10 +407,10 @@
         <div id="stage-panel-2" class="space-y-5 hidden">
           
           <!-- 2-A. Target Output Format & Scenario Picker -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div class="section-header-line flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
                   <i class="ph-fill ph-note-pencil text-brand-600 text-lg"></i>
                   <span>STEP 2-1. 변환할 목표 문서 형식 선택</span>
                 </h2>
@@ -346,10 +450,10 @@
           </div>
 
           <!-- 2-B. Raw Field Memo + Photo / File Upload -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div class="section-header-line flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
                   <i class="ph-fill ph-camera-plus text-brand-600 text-lg"></i>
                   <span>STEP 2-2. 현장 메모 입력 및 자료·사진 첨부</span>
                 </h2>
@@ -432,10 +536,10 @@
         <div id="stage-panel-3" class="space-y-5 hidden">
           
           <!-- 3-A. Saved Custom Templates Vault -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div class="section-header-line flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
                   <i class="ph-fill ph-bookmark-simple text-brand-600 text-lg"></i>
                   <span>STEP 3-1. 내가 자주 쓰는 서식 보관함</span>
                 </h2>
@@ -496,10 +600,10 @@
           </div>
 
           <!-- 3-B. One-Shot Content Input for Instant Draft Generation -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3.5">
-            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm space-y-3.5">
+            <div class="section-header-line flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
                   <i class="ph-fill ph-lightning text-brand-600 text-lg"></i>
                   <span>STEP 3-2. 핵심 내용만 한 줄씩 입력 (자동 서식 완성)</span>
                 </h2>
@@ -644,7 +748,85 @@
 
       </div>
     </div>
+
+    <!-- QUICK GUIDE & MANUAL CARD SECTION (Matching Screenshot 3) -->
+    <div class="mt-8 bg-white rounded-3xl border border-slate-200 p-5 sm:p-6 shadow-sm no-print">
+      <div class="section-header-line flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-slate-900">실습실 활용 및 바로가기</h3>
+        <span class="text-xs font-semibold text-brand-700">스마트폰 · 노트북 완벽 호환</span>
+      </div>
+
+      <div class="divide-y divide-slate-100 text-xs sm:text-sm">
+        <div onclick="switchStage(1); selectStage1Template('custom-import')" class="py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 px-2 rounded-xl transition">
+          <div class="flex items-center gap-4">
+            <span class="font-extrabold text-slate-900 w-24 shrink-0">내 서식 반영</span>
+            <span class="text-slate-500">보유한 한글·워드·텍스트 서식 파일 올리기</span>
+          </div>
+          <i class="ph-bold ph-arrow-square-out text-slate-400 text-base"></i>
+        </div>
+        <div onclick="switchStage(2)" class="py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 px-2 rounded-xl transition">
+          <div class="flex items-center gap-4">
+            <span class="font-extrabold text-slate-900 w-24 shrink-0">현장 메모 변환</span>
+            <span class="text-slate-500">화이트보드 사진·수기 메모로 회의록·보고서 생성</span>
+          </div>
+          <i class="ph-bold ph-arrow-square-out text-slate-400 text-base"></i>
+        </div>
+        <div onclick="downloadDocumentAsPDF()" class="py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 px-2 rounded-xl transition">
+          <div class="flex items-center gap-4">
+            <span class="font-extrabold text-slate-900 w-24 shrink-0">PDF 내려받기</span>
+            <span class="text-slate-500">작성된 완성 문서를 A4 PDF 파일로 즉시 저장</span>
+          </div>
+          <i class="ph-bold ph-download-simple text-slate-400 text-base"></i>
+        </div>
+      </div>
+
+      <!-- Bottom Manual Box inside Card -->
+      <div onclick="toggleModal('example-compare-modal', true)" class="mt-4 rounded-2xl border border-indigo-100 bg-[#f8f9fe] hover:bg-brand-50/70 p-4 text-center cursor-pointer transition">
+        <div class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-brand-700">
+          <i class="ph-bold ph-question text-base"></i>
+          <span>비서함 이용 매뉴얼 및 우수 예시 ›</span>
+        </div>
+        <div class="mt-1.5 flex items-center justify-center gap-2 text-[11px] text-slate-500 underline underline-offset-2">
+          <span>처음 쓰는 법</span>
+          <span>·</span>
+          <span>프롬프트 복사 활용법</span>
+          <span>·</span>
+          <span>작성 체크리스트</span>
+        </div>
+      </div>
+    </div>
   </main>
+
+  <!-- DEEP INDIGO-SLATE FOOTER WITH INSTRUCTOR CREDIT -->
+  <footer class="mt-8 bg-[#1e1b4b] text-indigo-100/90 py-8 px-4 sm:px-6 lg:px-8 no-print">
+    <div class="max-w-7xl mx-auto space-y-4 text-xs sm:text-sm leading-relaxed">
+      <div class="font-extrabold text-white text-sm sm:text-base flex items-center gap-2">
+        <i class="ph-bold ph-sparkle text-indigo-300"></i>
+        <span>AI 문서 자동화 실습 비서함</span>
+      </div>
+
+      <div class="space-y-1 text-indigo-200/80 text-xs">
+        <p>입력한 내용과 올린 파일은 이 기기(브라우저) 안에서만 처리되며 외부 서버로 저장·전송되지 않습니다.</p>
+        <p>AI가 만든 글과 서식화 문서는 초안입니다. 사실·날짜·숫자·예산은 반드시 직접 확인하세요.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 text-xs text-indigo-200 underline underline-offset-4 pt-1">
+        <button onclick="switchStage(1)" class="hover:text-white">표준 서식 자료실</button>
+        <button onclick="switchStage(2)" class="hover:text-white">현장 메모·사진 변환</button>
+        <button onclick="switchStage(3)" class="hover:text-white">나만의 서식 보관함</button>
+        <button onclick="toggleModal('example-compare-modal', true)" class="hover:text-white">우수 결과물 비교 예시</button>
+      </div>
+
+      <div class="pt-4 border-t border-indigo-800/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-indigo-200">
+        <div>
+          제작·운영 <strong class="text-white font-extrabold">프로감성러 장혜원 강사</strong>
+        </div>
+        <div class="text-[11px] text-indigo-300/80">
+          구직자 · 예비창업자 · 공공·일반행정 AI 문서 실습 교육용 워크스페이스
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <!-- MODAL 1: INSTRUCTOR SECRET MODAL (Includes 1-Click index.html Download for GitHub) -->
   <div id="sites-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 no-print">
@@ -760,6 +942,7 @@
     const state = {
       currentStage: 1,
       personaFilter: 'all',
+      searchQuery: '',
       docTone: 'formal',
       docLength: 'standard',
       selectedStage1TemplateId: 'work-report',
@@ -770,6 +953,53 @@
       stage3Templates: [],
       selectedStage3TemplateId: 'v-weekly'
     };
+
+    function handleTemplateSearch(query) {
+      state.searchQuery = (query || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('template-search-clear');
+      if (clearBtn) {
+        if (state.searchQuery) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+      }
+      if (state.currentStage !== 1) {
+        switchStage(1);
+      }
+      renderStage1TemplateGallery();
+    }
+
+    function clearTemplateSearch() {
+      const input = document.getElementById('template-search-input');
+      if (input) input.value = '';
+      handleTemplateSearch('');
+    }
+
+    function quickJumpShortcut(persona, templateId) {
+      if (state.currentStage !== 1) {
+        switchStage(1);
+      }
+      state.personaFilter = persona;
+      ['all', 'public', 'startup', 'job'].forEach(p => {
+        const btn = document.getElementById(`persona-${p}`);
+        if (!btn) return;
+        if (p === persona) {
+          btn.className = 'persona-btn px-3 py-1 rounded-full text-xs font-bold bg-brand-600 text-white shadow-sm transition';
+        } else {
+          btn.className = 'persona-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+        }
+      });
+      selectStage1Template(templateId);
+      const inputCard = document.getElementById('stage1-input-card');
+      if (inputCard) {
+        inputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function showTemplateGuideToast(event, templateId) {
+      event.stopPropagation();
+      const tpl = STAGE1_TEMPLATES.find(t => t.id === templateId);
+      if (!tpl) return;
+      showToast(`💡 [${tpl.title}] 사용법: ${tpl.desc}`);
+    }
 
     const STAGE1_TEMPLATES = [
       // 공공·일반행정 (public)
@@ -882,7 +1112,7 @@
         title: '핵심 역량 중심 표준 이력서 (Resume)',
         desc: '지원 직무, 핵심 역량 요약(Summary), 주요 경력·프로젝트 성과, 보유 기술·자격증을 한눈에 정리하는 이력서 서식입니다.',
         fields: [
-          { key: 'profile', label: '지원자 성명 / 지원 직무 및 연락처', placeholder: '예: 김지민 | 디지털 마케팅·콘텐츠 기획 지원 (010-0000-0000)', sample: '박서준 | 경영지원·데이터 기반 사업운영 직무 지원 (010-9876-5432 / sj.park@email.com)' },
+          { key: 'profile', label: '지원자 성명 / 지원 직무', placeholder: '예: 홍길동 | 디지털 마케팅·콘텐츠 기획 지원', sample: '홍길동 | 경영지원·데이터 기반 사업운영 직무 지원' },
           { key: 'summary', label: '1. 핵심 역량 요약 (Professional Summary)', type: 'textarea', placeholder: '나를 가장 잘 나타내는 직무 강점 2~3줄 요약', sample: '• 생성형 AI 및 스프레드시트 자동화를 활용해 반복 행정 업무 시간을 60% 이상 단축한 실무형 인재\n• 3건의 공공·대학 프로젝트를 리드하며 예산 관리, 일정 조율, 결과보고서 작성을 완수한 경험 보유\n• 데이터 시각화와 명확한 문서 커뮤니케이션으로 팀 내 협업 효율을 극대화함' },
           { key: 'experience', label: '2. 주요 경력 및 직무 관련 활동 (성과 수치 중심)', type: 'textarea', placeholder: '근무처/활동명, 기간, 담당 업무 및 핵심 성과를 입력하세요', sample: '• [OO진흥원] 청년 디지털 행정 인턴 (2026.03 ~ 2026.08)\n  - 주간 교육생 출결 및 만족도 취합 프로세스를 온라인 자동화하여 주당 4시간 소요 업무를 30분으로 단축\n  - 소상공인 지원사업 안내 매뉴얼 및 FAQ 카드뉴스 15종 기획·제작 (단순 전화 문의 35% 감소)\n• [한국대 경영학회] 산학협력 프로젝트 팀장 (2025.09 ~ 2025.12)\n  - 지역 전통시장 활성화 데이터 분석 및 마케팅 제안서 작성 (최우수상 수상)' },
           { key: 'skills', label: '3. 보유 기술 · 활용 툴 · 자격증', type: 'textarea', placeholder: '업무에 바로 활용 가능한 OA, AI 툴, 어학, 자격증 등', sample: '• 문서/데이터 자동화: Excel(피벗·함수), Google Workspace, Notion, 생성형 AI 프롬프트 설계\n• 보유 자격증: 컴퓨터활용능력 1급, 데이터분석준전문가(ADsP), ERP정보관리사 인사 1급' },
@@ -1141,10 +1371,11 @@
       state.personaFilter = persona;
       ['all', 'public', 'startup', 'job'].forEach(p => {
         const btn = document.getElementById(`persona-${p}`);
+        if (!btn) return;
         if (p === persona) {
-          btn.className = 'persona-btn px-2.5 py-1 rounded-lg font-semibold bg-white text-brand-700 shadow-sm transition';
+          btn.className = 'persona-btn px-3 py-1 rounded-full text-xs font-bold bg-brand-600 text-white shadow-sm transition';
         } else {
-          btn.className = 'persona-btn px-2.5 py-1 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition';
+          btn.className = 'persona-btn px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
         }
       });
 
@@ -1187,34 +1418,57 @@
     function renderStage1TemplateGallery() {
       const grid = document.getElementById('stage1-template-grid');
       const filtered = STAGE1_TEMPLATES.filter(t => {
-        if (state.personaFilter === 'all') return true;
-        return t.persona === state.personaFilter || t.persona === 'all';
+        const matchPersona = state.personaFilter === 'all' || t.persona === state.personaFilter || t.persona === 'all';
+        const matchQuery = !state.searchQuery ||
+          t.title.toLowerCase().includes(state.searchQuery) ||
+          t.desc.toLowerCase().includes(state.searchQuery) ||
+          t.badge.toLowerCase().includes(state.searchQuery);
+        return matchPersona && matchQuery;
       });
 
-      document.getElementById('template-count-badge').textContent = `${filtered.length}종 표시 중`;
+      document.getElementById('template-count-badge').textContent = `${filtered.length}종`;
 
-      grid.innerHTML = filtered.map(t => {
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="py-8 text-center text-xs text-slate-500">
+            검색어와 일치하는 서식이 없습니다. <button onclick="clearTemplateSearch()" class="text-brand-600 font-bold underline ml-1">전체 서식 보기</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((t, index) => {
         const isSelected = state.selectedStage1TemplateId === t.id;
         const isCustom = t.id === 'custom-import';
         return `
-          <button onclick="selectStage1Template('${t.id}')" class="text-left p-3.5 rounded-xl border transition-all flex flex-col justify-between ${
-            isSelected
-              ? 'border-2 border-brand-600 bg-brand-50/70 shadow-sm'
-              : isCustom
-              ? 'border-dashed border-2 border-brand-400 bg-brand-50/20 hover:bg-brand-50/50'
-              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+          <div onclick="selectStage1Template('${t.id}')" class="py-3 px-2.5 -mx-2 rounded-2xl cursor-pointer transition flex items-center justify-between gap-2 ${
+            isSelected ? 'bg-brand-50/90 ring-1 ring-brand-500/40' : 'hover:bg-slate-50'
           }">
-            <div>
-              <div class="flex items-center justify-between gap-2 mb-1.5">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                  isCustom ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
-                }">${t.badge}</span>
-                ${isSelected ? '<i class="ph-fill ph-check-circle text-brand-600 text-base"></i>' : ''}
+            <div class="flex items-start sm:items-center gap-3 min-w-0">
+              <span class="text-xs sm:text-sm font-extrabold ${isSelected ? 'text-brand-700' : 'text-slate-500'} w-5 text-center shrink-0">${index + 1}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs sm:text-sm font-extrabold text-slate-900 truncate">${t.title}</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isCustom ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'
+                  }">${t.badge}</span>
+                </div>
+                <p class="text-[11px] text-slate-500 truncate mt-0.5">${t.desc}</p>
               </div>
-              <div class="text-xs sm:text-sm font-bold text-slate-900">${t.title}</div>
-              <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">${t.desc}</p>
             </div>
-          </button>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="showTemplateGuideToast(event, '${t.id}')" class="px-2.5 py-1.5 rounded-xl border border-violet-200 bg-violet-50/80 hover:bg-violet-100 text-violet-800 text-[11px] font-bold transition">
+                사용법
+              </button>
+              <button onclick="event.stopPropagation(); selectStage1Template('${t.id}'); document.getElementById('stage1-input-card')?.scrollIntoView({behavior:'smooth', block:'nearest'});" class="px-3 py-1.5 rounded-xl ${
+                isSelected ? 'bg-brand-700 text-white' : 'bg-brand-600 hover:bg-brand-700 text-white'
+              } text-[11px] font-bold flex items-center gap-1 shadow-sm transition">
+                <i class="ph-bold ph-pencil-simple"></i>
+                <span>${isSelected ? '작성중' : '작성'}</span>
+              </button>
+            </div>
+          </div>
         `;
       }).join('');
     }
